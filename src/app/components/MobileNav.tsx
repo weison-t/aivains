@@ -1,3 +1,4 @@
+import Link from "next/link";
 type NavItem = {
   href: string;
   label: string;
@@ -80,7 +81,7 @@ export default function MobileNav() {
       <div className="mx-auto max-w-7xl px-3 pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-5 gap-2 rounded-2xl bg-gradient-to-r from-purple-100 via-fuchsia-100 to-pink-100 border border-purple-200 shadow-lg shadow-purple-300/40 ring-1 ring-purple-200 mb-3">
           {items.map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
               aria-label={item.label}
@@ -90,7 +91,7 @@ export default function MobileNav() {
                 {item.icon}
               </span>
               <span className="mt-1 text-[11px] font-medium">{item.label}</span>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
