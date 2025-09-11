@@ -18,7 +18,7 @@ export default function Home() {
           >
           <a
             href="/claims-forms"
-            className="group flex flex-col rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="group flex flex-col rounded-2xl border border-white/30 bg-white/10 hover:bg-white/15 active:bg-white/20 shadow-sm transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             role="gridcell"
             tabIndex={0}
             aria-label="Claims forms module"
@@ -41,7 +41,7 @@ export default function Home() {
 
           <a
             href="/forms-submission"
-            className="group flex flex-col rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="group flex flex-col rounded-2xl border border-white/30 bg-white/10 hover:bg-white/15 active:bg-white/20 shadow-sm transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             role="gridcell"
             tabIndex={0}
             aria-label="Forms submission module"
@@ -62,7 +62,7 @@ export default function Home() {
 
           <a
             href="/branch-locator"
-            className="group flex flex-col rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="group flex flex-col rounded-2xl border border-white/30 bg-white/10 hover:bg-white/15 active:bg-white/20 shadow-sm transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             role="gridcell"
             tabIndex={0}
             aria-label="Branch locator module"
@@ -83,7 +83,7 @@ export default function Home() {
 
           <a
             href="/more-info"
-            className="group flex flex-col rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="group flex flex-col rounded-2xl border border-white/30 bg-white/10 hover:bg-white/15 active:bg-white/20 shadow-sm transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             role="gridcell"
             tabIndex={0}
             aria-label="More information module"
@@ -104,7 +104,7 @@ export default function Home() {
 
           <a
             href="/contact-us"
-            className="group flex flex-col rounded-xl bg-white/10 hover:bg-white/15 active:bg-white/20 transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="group flex flex-col rounded-2xl border border-white/30 bg-white/10 hover:bg-white/15 active:bg-white/20 shadow-sm transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             role="gridcell"
             tabIndex={0}
             aria-label="Contact us module"
