@@ -1,8 +1,9 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 type NavItem = {
   href: string;
   label: string;
-  icon: JSX.Element;
+  icon: ReactNode;
 };
 
 const baseLinkClasses =
