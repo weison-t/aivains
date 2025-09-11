@@ -1,24 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is AIVA by Aetherion Dataworks — a simple, neat, mobile-first insurance interface.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 to view the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Main pages under `src/app/`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/` — Home with 2x2 module grid
+- `/claims-forms` — Downloadable forms
+- `/forms-submission` — Demo submission form
+- `/more-info` — FAQs and guides
+- `/contact-us` — Contact details
+
+Branding and gradient: `src/app/layout.tsx`
+
+Global Tailwind styles: `src/app/globals.css`
 
 ## Learn More
 
