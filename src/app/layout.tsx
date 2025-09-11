@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import MobileNav from "./components/MobileNav";
 
@@ -48,14 +49,14 @@ export default function RootLayout({
         <div className="min-h-screen flex flex-col">
           <header className="w-full sticky top-0 z-40">
             <div className="mx-auto max-w-7xl px-4 py-3 sm:py-5 flex items-center justify-between rounded-b-2xl bg-gradient-to-r from-purple-100 via-fuchsia-100 to-pink-100 border-b border-purple-200 shadow-md shadow-purple-300/40 ring-1 ring-purple-200/70 text-black">
-              <a href="/" className="inline-flex items-center gap-2" aria-label="AIVA home">
+              <Link href="/" className="inline-flex items-center gap-2" aria-label="AIVA home">
                 <span className="text-xl sm:text-2xl font-semibold tracking-tight">
                   AIVA
                 </span>
                 <span className="hidden sm:inline opacity-80">by Aetherion Dataworks</span>
-              </a>
+              </Link>
               <div className="flex items-center gap-2">
-                <a
+                <Link
                   href="/notifications"
                   aria-label="Alerts"
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white ring-1 ring-black/10 hover:bg-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 text-black"
@@ -63,8 +64,8 @@ export default function RootLayout({
                   <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
                     <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 1 1-6 0m6 0H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/profile"
                   aria-label="Profile"
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white ring-1 ring-black/10 hover:bg-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 text-black"
@@ -73,14 +74,14 @@ export default function RootLayout({
                     <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M4 20v-1a8 8 0 0 1 16 0v1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                </a>
+                </Link>
                 <nav aria-label="Primary" className="hidden sm:flex items-center gap-2 text-sm opacity-90">
-                  <a href="/" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Home</a>
-                  <a href="/wallet" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Wallet</a>
-                  <a href="/notifications" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Alerts</a>
-                  <a href="/appointments" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Appointments</a>
-                  <a href="/branch-locator" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Branches</a>
-                  <a href="/profile" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Profile</a>
+                  <Link href="/" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Home</Link>
+                  <Link href="/wallet" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Wallet</Link>
+                  <Link href="/notifications" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Alerts</Link>
+                  <Link href="/appointments" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Appointments</Link>
+                  <Link href="/branch-locator" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Branches</Link>
+                  <Link href="/profile" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Profile</Link>
                 </nav>
               </div>
             </div>
