@@ -166,7 +166,7 @@ export default function PoliciesPage() {
                   className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11px]"
                   aria-label="Clear search"
                 >
-                  <span>Search: "{query}"</span>
+                  <span>Search: &quot;{query}&quot;</span>
                   <span aria-hidden>×</span>
                 </button>
               )}
@@ -209,7 +209,7 @@ export default function PoliciesPage() {
                 <label className="block text-xs mb-1">Type</label>
                 <select
                   value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value as any)}
+                  onChange={(e) => setTypeFilter(e.target.value as PolicyType | "All")}
                   className="w-full rounded-md bg-white/10 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                   aria-label="Filter by type"
                 >
@@ -224,7 +224,7 @@ export default function PoliciesPage() {
                 <label className="block text-xs mb-1">Status</label>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  onChange={(e) => setStatusFilter(e.target.value as PolicyStatus | "All")}
                   className="w-full rounded-md bg-white/10 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                   aria-label="Filter by status"
                 >
@@ -248,7 +248,7 @@ export default function PoliciesPage() {
           />
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as any)}
+            onChange={(e) => setTypeFilter(e.target.value as PolicyType | "All")}
             className="rounded-md bg-white/10 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             aria-label="Filter by type"
           >
@@ -260,7 +260,7 @@ export default function PoliciesPage() {
           </select>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as PolicyStatus | "All")}
             className="rounded-md bg-white/10 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             aria-label="Filter by status"
           >
