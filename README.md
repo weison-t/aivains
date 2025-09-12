@@ -12,10 +12,15 @@ Open http://localhost:3000 to view the app.
 Main pages under `src/app/`:
 
 - `/` — Home with 2x2 module grid
+- `/policies` — List your policies and coverage
 - `/claims-forms` — Downloadable forms
 - `/forms-submission` — Demo submission form
 - `/more-info` — FAQs and guides
-- `/contact-us` — Contact details
+- `/branch-locator` — Branches and maps links
+- `/notifications` — Alerts center
+- `/appointments` — Book a call/visit
+- `/ai` — AIVA AI assistant (placeholder)
+- `/profile` — User profile
 
 Branding and gradient: `src/app/layout.tsx`
 

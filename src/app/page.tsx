@@ -17,26 +17,24 @@ export default function Home() {
             aria-label="AIVA modules"
           >
           <a
-            href="/claims-forms"
+            href="/policies"
             className="group flex flex-col rounded-2xl border border-white/30 bg-white/10 hover:bg-white/15 active:bg-white/20 shadow-sm transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             role="gridcell"
             tabIndex={0}
-            aria-label="Claims forms module"
+            aria-label="Policies module"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
                 <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-md">
                   <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5 text-white">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3.5V8h4.5"/>
+                    <path d="M6 3h9a2 2 0 0 1 2 2v14l-6-3-6 3V5a2 2 0 0 1 2-2Z"/>
                   </svg>
                 </span>
-                <h2 className="text-base sm:text-xl font-semibold">Claims Forms</h2>
+                <h2 className="text-base sm:text-xl font-semibold">Policies</h2>
               </div>
               <span className="opacity-80" aria-hidden>→</span>
             </div>
-            <p className="mt-2 text-xs sm:text-sm opacity-90">
-              Find the right forms for your claim type: medical, accident, property, and more.
-            </p>
+            <p className="mt-2 text-xs sm:text-sm opacity-90">View your active policies, coverage, and renewal dates.</p>
           </a>
 
           <a
@@ -58,6 +56,27 @@ export default function Home() {
               <span className="opacity-80" aria-hidden>→</span>
             </div>
             <p className="mt-2 text-xs sm:text-sm opacity-90">Upload documents securely, with clear guidance on what’s required for approval.</p>
+          </a>
+
+          <a
+            href="/claims-forms"
+            className="group flex flex-col rounded-2xl border border-white/30 bg-white/10 hover:bg-white/15 active:bg-white/20 shadow-sm transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            role="gridcell"
+            tabIndex={0}
+            aria-label="Claims forms module"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 shadow-md">
+                  <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5 text-white">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3.5V8h4.5"/>
+                  </svg>
+                </span>
+                <h2 className="text-base sm:text-xl font-semibold">Claim Forms</h2>
+              </div>
+              <span className="opacity-80" aria-hidden>→</span>
+            </div>
+            <p className="mt-2 text-xs sm:text-sm opacity-90">Download standardized templates and checklists for faster processing.</p>
           </a>
 
           <a

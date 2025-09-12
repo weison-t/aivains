@@ -1,8 +1,8 @@
-export default function WalletPage() {
+export default function PoliciesPage() {
   return (
     <section className="px-4 py-6 sm:py-10">
       <div className="mx-auto max-w-5xl space-y-4">
-        <h1 className="text-2xl sm:text-3xl font-bold">Policy Wallet</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Policies</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="rounded-xl bg-white/10 p-4">
             <div className="flex items-center justify-between">

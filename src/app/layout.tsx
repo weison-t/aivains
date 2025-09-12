@@ -66,6 +66,16 @@ export default function RootLayout({
                   </svg>
                 </Link>
                 <Link
+                  href="/ai"
+                  aria-label="AIVA AI"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white ring-1 ring-black/10 hover:bg-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 text-black"
+                >
+                  <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+                    <path d="M5 8l2-2m10 10l2-2M9 5l2-2m2 18l2-2M4 13h4M16 11h4M11 4h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </Link>
+                <Link
                   href="/profile"
                   aria-label="Profile"
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white ring-1 ring-black/10 hover:bg-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 text-black"
@@ -77,7 +87,7 @@ export default function RootLayout({
                 </Link>
                 <nav aria-label="Primary" className="hidden sm:flex items-center gap-2 text-sm opacity-90">
                   <Link href="/" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Home</Link>
-                  <Link href="/wallet" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Wallet</Link>
+                  <Link href="/policies" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Policies</Link>
                   <Link href="/notifications" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Alerts</Link>
                   <Link href="/appointments" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Appointments</Link>
                   <Link href="/branch-locator" className="text-black/80 hover:text-black focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20 rounded px-2 py-1">Branches</Link>
