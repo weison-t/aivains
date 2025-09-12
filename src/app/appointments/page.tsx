@@ -33,6 +33,14 @@ const fromISODateLocal = (iso: string) => {
   return new Date(y, (m || 1) - 1, d || 1);
 };
 
+const formatDateDisplay = (iso: string) => {
+  const d = fromISODateLocal(iso);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
 function startOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -234,7 +242,7 @@ export default function AppointmentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs opacity-80">Selected date</p>
-                <p className="text-sm font-semibold">{new Date(selectedDateISO + "T00:00:00").toLocaleDateString()}</p>
+                <p className="text-sm font-semibold">{formatDateDisplay(selectedDateISO)}</p>
               </div>
               <div className="inline-flex gap-1">
                 {(["all", "am", "pm"] as const).map((f) => (
@@ -265,7 +273,7 @@ export default function AppointmentsPage() {
             </div>
             <div className="mt-3 flex items-center justify-between">
               <p className="text-xs opacity-80">
-                {selectedSlot ? `Booking ${new Date(selectedDateISO + "T00:00:00").toLocaleDateString()} • ${selectedSlot}` : "Select a slot"}
+                {selectedSlot ? `Booking ${formatDateDisplay(selectedDateISO)} • ${selectedSlot}` : "Select a slot"}
               </p>
               <button onClick={handleBook} className="rounded-md bg-white text-fuchsia-700 font-semibold px-3 py-1.5 text-sm" disabled={!selectedSlot}>
                 Book
@@ -279,7 +287,7 @@ export default function AppointmentsPage() {
                   if (!b) return null;
                   return (
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs opacity-90">
-                      <span>{new Date(b.dateISO + "T00:00:00").toLocaleDateString()}</span>
+                      <span>{formatDateDisplay(b.dateISO)}</span>
                       <span>•</span>
                       <span>{b.slot}</span>
                       <button onClick={() => handleDownloadICS(b)} className="rounded bg-white text-fuchsia-700 px-2 py-1">Add to calendar</button>
@@ -309,7 +317,7 @@ export default function AppointmentsPage() {
               {bookings.map((b) => (
                 <li key={b.id} className="flex items-center justify-between rounded-lg bg-white/10 p-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="rounded bg-white/20 px-2 py-0.5 text-[11px]">{new Date(b.dateISO + "T00:00:00").toLocaleDateString()}</span>
+                    <span className="rounded bg-white/20 px-2 py-0.5 text-[11px]">{formatDateDisplay(b.dateISO)}</span>
                     <span className="opacity-90">{b.slot}</span>
                   </div>
                   <div className="flex items-center gap-2">
