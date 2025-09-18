@@ -75,8 +75,8 @@ export default function PoliciesPage() {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        let w = img.width;
-        let h = img.height;
+        const w = img.width;
+        const h = img.height;
         const scale = Math.min(1, maxDim / Math.max(w, h));
         const nw = Math.max(1, Math.round(w * scale));
         const nh = Math.max(1, Math.round(h * scale));
@@ -457,11 +457,11 @@ export default function PoliciesPage() {
                               // Client-side OCR fallback: render first pages to images and send to Vision
                               try {
                                 const pdfjs = await import("pdfjs-dist/legacy/build/pdf");
-                                // @ts-ignore
-                                pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjs as any).version}/pdf.worker.min.js`;
+                                (pdfjs as unknown as { GlobalWorkerOptions: { workerSrc: string }; version: string }).GlobalWorkerOptions.workerSrc =
+                                  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjs as unknown as { version: string }).version}/pdf.worker.min.js`;
                                 // Fetch as arrayBuffer first to avoid CORS tainting, then feed bytes
                                 const ab = await (await fetch(selectedFile.url as string, { cache: "no-store" })).arrayBuffer();
-                                const loadingTask = (pdfjs as any).getDocument({ data: ab });
+                                const loadingTask = (pdfjs as unknown as { getDocument: (opts: unknown) => { promise: Promise<any> } }).getDocument({ data: ab });
                                 const doc = await loadingTask.promise;
                                 const images: string[] = [];
                                 const pageCount = Math.min(doc.numPages || 1, 2);

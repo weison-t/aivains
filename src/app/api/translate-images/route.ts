@@ -34,7 +34,9 @@ export async function POST(req: Request): Promise<Response> {
       instruction = `Extract readable text from ${imageUrl ? "this image" : "these page images"} and answer the question: ${question || "Explain this document."}. If insufficient info, say what's missing.`;
     }
 
-    const userContent: any[] = [{ type: "text", text: instruction }];
+    type ImageContent = { type: "image_url"; image_url: { url: string; detail?: "low" | "high" } };
+    type TextContent = { type: "text"; text: string };
+    const userContent: Array<ImageContent | TextContent> = [{ type: "text", text: instruction }];
     if (Array.isArray(images) && images.length > 0) {
       for (const img of images.slice(0, 5)) {
         userContent.push({ type: "image_url", image_url: { url: img, detail: "high" } });
@@ -48,7 +50,7 @@ export async function POST(req: Request): Promise<Response> {
       temperature: 0.2,
       messages: [
         { role: "system", content: "You are a precise OCR assistant that can translate, summarize, or answer questions from extracted text." },
-        { role: "user", content: userContent as any },
+        { role: "user", content: userContent },
       ],
     });
 
