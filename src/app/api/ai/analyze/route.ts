@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { createCanvas } from "canvas";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
+import { loadPdfjs, type PdfJsModule } from "../_pdfjs";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     if (res.text && res.text.trim()) return res.text.trim();
   } catch {}
   try {
-    const pdfjs = (await import("pdfjs-dist/legacy/build/pdf")) as unknown as PdfJsModule;
+    const pdfjs: PdfJsModule = await loadPdfjs();
     pdfjs.GlobalWorkerOptions.workerSrc = null as unknown as string;
     const doc = await pdfjs.getDocument({ data: buffer, disableFontFace: true, isEvalSupported: false }).promise;
     const texts: string[] = [];
@@ -43,7 +44,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 
 async function ocrPdfToText(buffer: Buffer, openai: OpenAI, maxPages = 8): Promise<string> {
   try {
-    const pdfjs = (await import("pdfjs-dist/legacy/build/pdf")) as unknown as PdfJsModule;
+    const pdfjs: PdfJsModule = await loadPdfjs();
     pdfjs.GlobalWorkerOptions.workerSrc = null as unknown as string;
     const doc = await pdfjs.getDocument({ data: buffer, disableFontFace: true, isEvalSupported: false }).promise;
     const total = doc.numPages || 1;

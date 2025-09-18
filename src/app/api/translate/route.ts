@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 import { createCanvas } from "canvas";
+import { loadPdfjs } from "../_pdfjs";
 
 export const runtime = "nodejs";
 
@@ -24,10 +25,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   }
   // Fallback: use pdfjs-dist to extract text content from pages
   try {
-    const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf")) as unknown as {
-      GlobalWorkerOptions: { workerSrc: string };
-      getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: Array<{ str?: unknown }> }> }> }> };
-    };
+    const pdfjsLib = await loadPdfjs();
     // Disable worker in Node environment
     pdfjsLib.GlobalWorkerOptions.workerSrc = null;
     const loadingTask = pdfjsLib.getDocument({ data: buffer, disableFontFace: true, useWorkerFetch: false, isEvalSupported: false, disableRange: true });
@@ -131,10 +129,7 @@ export async function POST(req: Request): Promise<Response> {
         // Server-side OCR: render PDF pages to images and pass to Vision
         if (contentType.includes("application/pdf") || (effectiveFilename || "").toLowerCase().endsWith(".pdf")) {
           try {
-            const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf")) as unknown as {
-              GlobalWorkerOptions: { workerSrc: string };
-              getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getViewport: (o: { scale: number }) => { width: number; height: number }; render: (a: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } }> }> };
-            };
+            const pdfjsLib = await loadPdfjs();
             pdfjsLib.GlobalWorkerOptions.workerSrc = null;
             const loadingTask = pdfjsLib.getDocument({ data: buffer, disableFontFace: true, useWorkerFetch: false, isEvalSupported: false, disableRange: true });
             const doc = await loadingTask.promise;
