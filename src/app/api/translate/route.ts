@@ -122,7 +122,7 @@ export async function POST(req: Request): Promise<Response> {
               { type: "text", text: "Translate this image to the target language." },
               { type: "image_url", image_url: { url: effectiveUrl } },
             ],
-          } as any,
+          },
         ],
       });
       translated = completion.choices?.[0]?.message?.content || "";
