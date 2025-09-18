@@ -11,40 +11,63 @@ export default function AIPage() {
     content: "Hi, I’m AIVA. How can I help with your insurance today?",
   };
   const HISTORY_ENDPOINT = "/api/ai/history";
+  const LOCAL_KEY = "aiva_ai_chat";
 
   const [messages, setMessages] = useState<ChatMessage[]>([initialGreeting]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Load from Supabase via API on mount
+  // Load from Supabase via API on mount, fallback to localStorage
   useEffect(() => {
     const load = async () => {
       try {
         const res = await fetch(HISTORY_ENDPOINT, { cache: "no-store" });
-        if (!res.ok) return;
+        if (!res.ok) throw new Error("history api not ok");
         const data = (await res.json()) as { messages?: ChatMessage[] };
         if (Array.isArray(data?.messages) && data.messages.length > 0) {
           setMessages(data.messages);
+          return;
+        }
+        // fallback to localStorage if server has no history
+        const raw = localStorage.getItem(LOCAL_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as ChatMessage[];
+          if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed);
         }
       } catch {
-        // ignore
+        const raw = localStorage.getItem(LOCAL_KEY);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as ChatMessage[];
+            if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed);
+          } catch {
+            // ignore
+          }
+        }
       }
     };
     load();
   }, []);
 
-  // Persist to Supabase via API when messages change
+  // Persist to Supabase via API when messages change; fallback to localStorage on failure
   useEffect(() => {
     const save = async () => {
       try {
-        await fetch(HISTORY_ENDPOINT, {
+        const res = await fetch(HISTORY_ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages }),
         });
+        if (!res.ok) {
+          localStorage.setItem(LOCAL_KEY, JSON.stringify(messages));
+        }
       } catch {
-        // ignore
+        try {
+          localStorage.setItem(LOCAL_KEY, JSON.stringify(messages));
+        } catch {
+          // ignore
+        }
       }
     };
     // avoid posting the initial state only greeting if no user messages yet
@@ -91,6 +114,11 @@ export default function AIPage() {
     const ok = confirm("Clear chat history?");
     if (!ok) return;
     setMessages([initialGreeting]);
+    try {
+      localStorage.removeItem(LOCAL_KEY);
+    } catch {
+      // ignore
+    }
     // server will be updated by the messages effect
   };
 
