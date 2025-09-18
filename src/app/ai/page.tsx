@@ -120,7 +120,7 @@ export default function AIPage() {
           body: form,
           timeoutMs: 60000,
         });
-        let data = await res.json();
+        const data = await res.json();
         if (isPdf && (res.status === 501 || !res.ok || !data?.content)) {
           // Final client-side OCR fallback: render pages and call translate-images
           try {
@@ -181,7 +181,7 @@ export default function AIPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages: next }),
           timeoutMs: 60000,
-        } as any);
+        });
         const data = await res.json();
         if (data?.message?.content) {
           setMessages((prev) => [...prev, { role: "assistant", content: data.message.content }]);

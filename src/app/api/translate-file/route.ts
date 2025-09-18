@@ -56,25 +56,29 @@ export async function POST(req: Request): Promise<Response> {
     const buffer = Buffer.from(await res.arrayBuffer());
 
     // Create a Vector Store and upload the file (ChatGPT attachments-like)
-    const vf = await (OpenAI as any).toFile(buffer, effectiveFilename, { contentType });
-    const vectorStore = await (openai as any).beta.vectorStores.create({ name: `aiva-translate-${Date.now()}` });
-    await (openai as any).beta.vectorStores.fileBatches.uploadAndPoll(vectorStore.id, { files: [vf] });
+    const vf = await (OpenAI as unknown as { toFile: (buf: Buffer, name: string, opts: { contentType: string }) => Promise<File> }).toFile(
+      buffer,
+      effectiveFilename,
+      { contentType }
+    );
+    const vectorStore = await (openai as unknown as { beta: { vectorStores: { create: (a: { name: string }) => Promise<{ id: string }>; fileBatches: { uploadAndPoll: (id: string, opts: { files: File[] }) => Promise<unknown> } } } }).beta.vectorStores.create({ name: `aiva-translate-${Date.now()}` });
+    await (openai as unknown as { beta: { vectorStores: { fileBatches: { uploadAndPoll: (id: string, opts: { files: File[] }) => Promise<unknown> } } } }).beta.vectorStores.fileBatches.uploadAndPoll(vectorStore.id, { files: [vf] });
 
     // Use file_search tool with the vector store
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
       tools: [{ type: "file_search" }],
-      tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } } as any,
+      tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
       input: `Translate the attached document into ${targetLanguage}. Preserve structure and headings as readable plain text. Return only the translation.`,
-    } as any);
+    });
 
     // Extract text
     // Some SDK versions expose response.output_text; otherwise assemble from output array
-    const anyResp: any = response as any;
-    const outputText: string = anyResp.output_text
-      || (Array.isArray(anyResp.output)
-        ? anyResp.output
-            .map((o: any) => Array.isArray(o?.content) ? o.content.map((c: any) => c?.text?.value || "").join("") : "")
+    const resp = response as unknown as { output_text?: string; output?: Array<{ content?: Array<{ text?: { value?: string } }> }>; };
+    const outputText: string = resp.output_text
+      || (Array.isArray(resp.output)
+        ? resp.output
+            .map((o) => Array.isArray(o?.content) ? o.content.map((c) => c?.text?.value || "").join("") : "")
             .join("\n")
         : "");
 
