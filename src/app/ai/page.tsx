@@ -115,20 +115,20 @@ export default function AIPage() {
         setInput("");
         setFile(null);
         const isPdf = (file.type?.includes("pdf") || (file.name || "").toLowerCase().endsWith(".pdf"));
-        let res = await fetchWithTimeout(isPdf ? "/api/ai/retrieve" : "/api/ai/analyze", {
+        const res = await fetchWithTimeout(isPdf ? "/api/ai/retrieve" : "/api/ai/analyze", {
           method: "POST",
           body: form,
           timeoutMs: 60000,
-        } as any);
+        });
         let data = await res.json();
         if (isPdf && (res.status === 501 || !res.ok || !data?.content)) {
           // Final client-side OCR fallback: render pages and call translate-images
           try {
             const pdfjs = await import("pdfjs-dist/legacy/build/pdf");
-            // @ts-ignore
-            pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjs as any).version}/pdf.worker.min.js`;
+            (pdfjs as unknown as { GlobalWorkerOptions: { workerSrc: string }; version: string }).GlobalWorkerOptions.workerSrc =
+              `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjs as unknown as { version: string }).version}/pdf.worker.min.js`;
             const ab = await file.arrayBuffer();
-            const loadingTask = (pdfjs as any).getDocument({ data: ab });
+            const loadingTask = (pdfjs as unknown as { getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getViewport: (o: { scale: number }) => { width: number; height: number }; render: (a: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } }> }> } }).getDocument({ data: ab });
             const doc = await loadingTask.promise;
             const limit = Math.min(doc.numPages || 1, 5);
             const images: string[] = [];
@@ -151,7 +151,7 @@ export default function AIPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ images, targetLanguage: targetLang, mode, question: input.trim() }),
                 timeoutMs: 60000,
-              } as any);
+              });
               const visionJson = await visionRes.json();
               if (visionRes.ok && visionJson?.translated) {
                 setMessages((prev) => [...prev, { role: "assistant", content: visionJson.translated }]);

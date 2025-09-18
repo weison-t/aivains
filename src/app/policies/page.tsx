@@ -461,7 +461,7 @@ export default function PoliciesPage() {
                                   `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjs as unknown as { version: string }).version}/pdf.worker.min.js`;
                                 // Fetch as arrayBuffer first to avoid CORS tainting, then feed bytes
                                 const ab = await (await fetch(selectedFile.url as string, { cache: "no-store" })).arrayBuffer();
-                                const loadingTask = (pdfjs as unknown as { getDocument: (opts: unknown) => { promise: Promise<any> } }).getDocument({ data: ab });
+                                const loadingTask = (pdfjs as unknown as { getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getViewport: (o: { scale: number }) => { width: number; height: number }; render: (a: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } }> }> } }).getDocument({ data: ab });
                                 const doc = await loadingTask.promise;
                                 const images: string[] = [];
                                 const pageCount = Math.min(doc.numPages || 1, 2);

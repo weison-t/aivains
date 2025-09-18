@@ -24,8 +24,10 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   }
   // Fallback: use pdfjs-dist to extract text content from pages
   try {
-    // @ts-ignore dynamic import of legacy build works in Node
-    const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.js")) as any;
+    const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.js")) as unknown as {
+      GlobalWorkerOptions: { workerSrc: string };
+      getDocument: (opts: unknown) => { promise: Promise<any> };
+    };
     // Disable worker in Node environment
     pdfjsLib.GlobalWorkerOptions.workerSrc = null;
     const loadingTask = pdfjsLib.getDocument({ data: buffer, disableFontFace: true, useWorkerFetch: false, isEvalSupported: false, disableRange: true });
@@ -35,7 +37,8 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     for (let pageNum = 1; pageNum <= numPages; pageNum += 1) {
       const page = await doc.getPage(pageNum);
       const content = await page.getTextContent();
-      const strings = (content.items || []).map((it: any) => (typeof it.str === "string" ? it.str : ""));
+      const items = (content && Array.isArray((content as { items?: unknown }).items)) ? (content as { items: Array<{ str?: unknown }> }).items : [];
+      const strings = items.map((it) => (typeof it.str === "string" ? it.str : ""));
       out += strings.join(" ") + "\n\n";
     }
     return out.trim();
@@ -128,8 +131,10 @@ export async function POST(req: Request): Promise<Response> {
         // Server-side OCR: render PDF pages to images and pass to Vision
         if (contentType.includes("application/pdf") || (effectiveFilename || "").toLowerCase().endsWith(".pdf")) {
           try {
-            // @ts-ignore dynamic import
-            const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.js")) as any;
+            const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.js")) as unknown as {
+              GlobalWorkerOptions: { workerSrc: string };
+              getDocument: (opts: unknown) => { promise: Promise<any> };
+            };
             pdfjsLib.GlobalWorkerOptions.workerSrc = null;
             const loadingTask = pdfjsLib.getDocument({ data: buffer, disableFontFace: true, useWorkerFetch: false, isEvalSupported: false, disableRange: true });
             const doc = await loadingTask.promise;
@@ -154,7 +159,7 @@ export async function POST(req: Request): Promise<Response> {
                   temperature: 0.2,
                   messages: [
                     { role: "system", content: `You are an OCR+translation assistant. Extract text from this document page image and translate into ${targetLanguage}. Keep structure succinct and readable. Return only the translation.` },
-                    { role: "user", content: [{ type: "text", text: `Translate page ${idx + 1}.` }, { type: "image_url", image_url: { url: u, detail: "high" } }] as any },
+                    { role: "user", content: [{ type: "text", text: `Translate page ${idx + 1}.` }, { type: "image_url", image_url: { url: u, detail: "high" } }] },
                   ],
                 });
                 perPageOutputs.push(vision.choices?.[0]?.message?.content || "");

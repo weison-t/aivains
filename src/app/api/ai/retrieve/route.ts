@@ -17,7 +17,7 @@ export async function POST(req: Request): Promise<Response> {
     if (!file) return Response.json({ error: "No file provided." }, { status: 400 });
 
     // Ensure vector store API is available
-    const hasVectorStores = Boolean((openai as any)?.beta?.vectorStores?.create);
+    const hasVectorStores = Boolean((openai as unknown as { beta?: { vectorStores?: unknown } }).beta?.vectorStores);
     if (!hasVectorStores) {
       return Response.json(
         { error: "Retrieval not available in this environment (vector stores unsupported)." },
@@ -28,10 +28,14 @@ export async function POST(req: Request): Promise<Response> {
     // Create vector store and upload
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const vf = await (OpenAI as any).toFile(buffer, (file as any).name || "upload.pdf", { contentType: file.type || "application/pdf" });
+    const vf = await (OpenAI as unknown as { toFile: (buf: Buffer, name: string, opts: { contentType: string }) => Promise<File> }).toFile(
+      buffer,
+      ((file as unknown as { name?: string }).name || "upload.pdf"),
+      { contentType: file.type || "application/pdf" }
+    );
 
-    const vectorStore = await (openai as any).beta.vectorStores.create({ name: `aiva-retrieve-${Date.now()}` });
-    await (openai as any).beta.vectorStores.fileBatches.uploadAndPoll(vectorStore.id, { files: [vf] });
+    const vectorStore = await (openai as unknown as { beta: { vectorStores: { create: (a: { name: string }) => Promise<{ id: string }> } } }).beta.vectorStores.create({ name: `aiva-retrieve-${Date.now()}` });
+    await (openai as unknown as { beta: { vectorStores: { fileBatches: { uploadAndPoll: (id: string, opts: { files: File[] }) => Promise<unknown> } } } }).beta.vectorStores.fileBatches.uploadAndPoll(vectorStore.id, { files: [vf] });
 
     // Build instruction
     let instruction = "";
@@ -46,14 +50,14 @@ export async function POST(req: Request): Promise<Response> {
     const response = await openai.responses.create({
       model: "gpt-4.1-mini",
       tools: [{ type: "file_search" }],
-      tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } } as any,
+      tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
       input: question ? `${instruction}\n\nQuestion: ${question}` : instruction,
-    } as any);
+    });
 
-    const anyResp: any = response as any;
-    const outputText: string = anyResp.output_text
-      || (Array.isArray(anyResp.output)
-        ? anyResp.output.map((o: any) => Array.isArray(o?.content) ? o.content.map((c: any) => c?.text?.value || "").join("") : "").join("\n")
+    const resp = response as unknown as { output_text?: string; output?: Array<{ content?: Array<{ text?: { value?: string } }> }>; };
+    const outputText: string = resp.output_text
+      || (Array.isArray(resp.output)
+        ? resp.output.map((o) => Array.isArray(o?.content) ? o.content.map((c) => c?.text?.value || "").join("") : "").join("\n")
         : "");
 
     if (!outputText || outputText.trim().length === 0) {
