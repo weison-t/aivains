@@ -250,7 +250,7 @@ export default function AIPage() {
           </div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-2 items-center">
             <div className="flex gap-2">
-              <select value={mode} onChange={(e) => setMode(e.target.value as any)} aria-label="Mode" className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/20">
+              <select value={mode} onChange={(e) => setMode(e.target.value as "chat" | "summarize" | "translate")} aria-label="Mode" className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/20">
                 <option value="chat">Chat</option>
                 <option value="summarize">Summarize</option>
                 <option value="translate">Translate</option>

@@ -26,7 +26,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
     const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.js")) as unknown as {
       GlobalWorkerOptions: { workerSrc: string };
-      getDocument: (opts: unknown) => { promise: Promise<any> };
+      getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: Array<{ str?: unknown }> }> }> }> };
     };
     // Disable worker in Node environment
     pdfjsLib.GlobalWorkerOptions.workerSrc = null;
@@ -133,7 +133,7 @@ export async function POST(req: Request): Promise<Response> {
           try {
             const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.js")) as unknown as {
               GlobalWorkerOptions: { workerSrc: string };
-              getDocument: (opts: unknown) => { promise: Promise<any> };
+              getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getViewport: (o: { scale: number }) => { width: number; height: number }; render: (a: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } }> }> };
             };
             pdfjsLib.GlobalWorkerOptions.workerSrc = null;
             const loadingTask = pdfjsLib.getDocument({ data: buffer, disableFontFace: true, useWorkerFetch: false, isEvalSupported: false, disableRange: true });
