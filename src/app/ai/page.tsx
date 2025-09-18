@@ -15,6 +15,7 @@ export default function AIPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([initialGreeting]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // Load from Supabase via API on mount (Supabase only)
@@ -29,6 +30,8 @@ export default function AIPage() {
         }
       } catch {
         // ignore
+      } finally {
+        setLoaded(true);
       }
     };
     load();
@@ -47,8 +50,9 @@ export default function AIPage() {
         // ignore
       }
     };
+    if (!loaded) return;
     save();
-  }, [messages]);
+  }, [messages, loaded]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
