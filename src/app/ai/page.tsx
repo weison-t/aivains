@@ -10,34 +10,46 @@ export default function AIPage() {
     role: "assistant",
     content: "Hi, I’m AIVA. How can I help with your insurance today?",
   };
-  const STORAGE_KEY = "aiva_ai_chat";
+  const HISTORY_ENDPOINT = "/api/ai/history";
 
   const [messages, setMessages] = useState<ChatMessage[]>([initialGreeting]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // Load from localStorage on mount
+  // Load from Supabase via API on mount
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as ChatMessage[];
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setMessages(parsed);
+    const load = async () => {
+      try {
+        const res = await fetch(HISTORY_ENDPOINT, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { messages?: ChatMessage[] };
+        if (Array.isArray(data?.messages) && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    };
+    load();
   }, []);
 
-  // Persist to localStorage when messages change
+  // Persist to Supabase via API when messages change
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-    } catch {
-      // ignore
+    const save = async () => {
+      try {
+        await fetch(HISTORY_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages }),
+        });
+      } catch {
+        // ignore
+      }
+    };
+    // avoid posting the initial state only greeting if no user messages yet
+    if (messages.length >= 1) {
+      save();
     }
   }, [messages]);
 
@@ -79,11 +91,7 @@ export default function AIPage() {
     const ok = confirm("Clear chat history?");
     if (!ok) return;
     setMessages([initialGreeting]);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    // server will be updated by the messages effect
   };
 
   return (
