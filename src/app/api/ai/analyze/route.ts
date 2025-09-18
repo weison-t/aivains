@@ -24,7 +24,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     if (res.text && res.text.trim()) return res.text.trim();
   } catch {}
   try {
-    const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.js")) as unknown as PdfJsModule;
+    const pdfjs = (await import("pdfjs-dist/legacy/build/pdf")) as unknown as PdfJsModule;
     pdfjs.GlobalWorkerOptions.workerSrc = null as unknown as string;
     const doc = await pdfjs.getDocument({ data: buffer, disableFontFace: true, isEvalSupported: false }).promise;
     const texts: string[] = [];
@@ -43,7 +43,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 
 async function ocrPdfToText(buffer: Buffer, openai: OpenAI, maxPages = 8): Promise<string> {
   try {
-    const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.js")) as unknown as PdfJsModule;
+    const pdfjs = (await import("pdfjs-dist/legacy/build/pdf")) as unknown as PdfJsModule;
     pdfjs.GlobalWorkerOptions.workerSrc = null as unknown as string;
     const doc = await pdfjs.getDocument({ data: buffer, disableFontFace: true, isEvalSupported: false }).promise;
     const total = doc.numPages || 1;

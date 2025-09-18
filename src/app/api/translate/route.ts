@@ -24,7 +24,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   }
   // Fallback: use pdfjs-dist to extract text content from pages
   try {
-    const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.js")) as unknown as {
+    const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf")) as unknown as {
       GlobalWorkerOptions: { workerSrc: string };
       getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getTextContent: () => Promise<{ items: Array<{ str?: unknown }> }> }> }> };
     };
@@ -131,7 +131,7 @@ export async function POST(req: Request): Promise<Response> {
         // Server-side OCR: render PDF pages to images and pass to Vision
         if (contentType.includes("application/pdf") || (effectiveFilename || "").toLowerCase().endsWith(".pdf")) {
           try {
-            const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf.js")) as unknown as {
+            const pdfjsLib = (await import("pdfjs-dist/legacy/build/pdf")) as unknown as {
               GlobalWorkerOptions: { workerSrc: string };
               getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getViewport: (o: { scale: number }) => { width: number; height: number }; render: (a: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } }> }> };
             };
