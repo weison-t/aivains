@@ -36,7 +36,7 @@ export default function AIPage() {
       } else if (data?.error) {
         setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${data.error}` }]);
       }
-    } catch (err) {
+    } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Network error. Please try again." }]);
     } finally {
       setLoading(false);

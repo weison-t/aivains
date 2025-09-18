@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+type BucketFile = {
+  name: string;
+  updated_at?: string;
+  metadata?: { size?: number };
+};
+
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string;
@@ -23,7 +29,7 @@ export async function GET() {
     if (listErr) throw listErr;
 
     const files = await Promise.all(
-      (list || []).map(async (f: any) => {
+      (list || []).map(async (f: BucketFile) => {
         const path = f.name as string;
         // Signed URL (default 1 hour)
         const { data: signed, error: signErr } = await supa.storage
@@ -33,17 +39,18 @@ export async function GET() {
         return {
           name: f.name as string,
           path,
-          updatedAt: (f as { updated_at?: string }).updated_at,
-          size: (f as { metadata?: { size?: number } }).metadata?.size,
+          updatedAt: f.updated_at,
+          size: f.metadata?.size,
           url: signed?.signedUrl as string | undefined,
         };
       })
     );
 
     return NextResponse.json({ files });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to list documents";
     return NextResponse.json(
-      { error: e?.message || "Failed to list documents" },
+      { error: message },
       { status: 500 }
     );
   }

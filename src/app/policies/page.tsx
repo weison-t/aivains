@@ -110,7 +110,7 @@ export default function PoliciesPage() {
         } else {
           setPolicies(seedPolicies);
         }
-      } catch (e) {
+      } catch {
         setError("Failed to load policies. Showing sample data.");
         setPolicies(seedPolicies);
       } finally {
@@ -118,7 +118,6 @@ export default function PoliciesPage() {
       }
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
