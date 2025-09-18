@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
 
 type PolicyStatus = "Active" | "Expired";
 type PolicyType = "Health" | "Motor" | "Property" | "Life";
@@ -42,6 +43,14 @@ const seedPolicies: Policy[] = [
   },
 ];
 
+type StorageFile = {
+  name: string;
+  path: string;
+  updatedAt?: string;
+  size?: number;
+  url?: string;
+};
+
 const formatDateDisplay = (iso: string) => {
   const [y, m, d] = iso.split("-").map((n) => parseInt(n, 10));
   if (!y || !m || !d) return iso;
@@ -50,29 +59,70 @@ const formatDateDisplay = (iso: string) => {
 
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"All" | PolicyType>("All");
   const [statusFilter, setStatusFilter] = useState<"All" | PolicyStatus>("All");
   const [expandedId, setExpandedId] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [view, setView] = useState<"documents" | "policies">("documents");
+  const [files, setFiles] = useState<StorageFile[]>([]);
+  const [selectedFile, setSelectedFile] = useState<StorageFile | null>(null);
 
   // Add policy feature removed per request
 
   useEffect(() => {
-    const saved = localStorage.getItem("aiva_policies");
-    if (saved) {
+    const SUPA_READY = Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    const load = async () => {
+      setLoading(true);
+      setError("");
       try {
-        const parsed = JSON.parse(saved) as Policy[];
-        setPolicies(parsed.length ? parsed : seedPolicies);
-      } catch {
+        if (SUPA_READY) {
+          // Use signed URL API to support private buckets
+          try {
+            const res = await fetch("/api/policies/documents", { cache: "no-store" });
+            if (res.ok) {
+              const json = (await res.json()) as { files: StorageFile[] };
+              if (Array.isArray(json.files)) setFiles(json.files);
+            }
+          } catch {}
+
+          const { data, error: err } = await supabase
+            .from("policies")
+            .select("id,name,number,type,status,coverage,deductible,renewalISO,details")
+            .order("name", { ascending: true });
+          if (!err && Array.isArray(data) && data.length > 0) {
+            setPolicies(data as unknown as Policy[]);
+          }
+        }
+        // Fallback to localStorage or seeds
+        const saved = localStorage.getItem("aiva_policies");
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as Policy[];
+            setPolicies(parsed.length ? parsed : seedPolicies);
+          } catch {
+            setPolicies(seedPolicies);
+          }
+        } else {
+          setPolicies(seedPolicies);
+        }
+      } catch (e) {
+        setError("Failed to load policies. Showing sample data.");
         setPolicies(seedPolicies);
+      } finally {
+        setLoading(false);
       }
-    } else {
-      setPolicies(seedPolicies);
-    }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    // Keep a local cache for offline use
     localStorage.setItem("aiva_policies", JSON.stringify(policies));
   }, [policies]);
 
@@ -96,8 +146,17 @@ export default function PoliciesPage() {
 
   // handleAddPolicy removed
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Remove this policy?")) return;
+    const SUPA_READY = Boolean(
+      process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+    if (SUPA_READY) {
+      const { error: err } = await supabase.from("policies").delete().eq("id", id);
+      if (err) {
+        alert("Failed to delete on server. Removing locally only.");
+      }
+    }
     setPolicies((prev) => prev.filter((p) => p.id !== id));
   };
 
@@ -137,7 +196,30 @@ export default function PoliciesPage() {
       <div className="mx-auto max-w-5xl space-y-4">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-2xl sm:text-3xl font-bold">Policies</h1>
+          <div className="inline-flex rounded-lg bg-white/10 p-1 text-xs">
+            <button
+              onClick={() => setView("documents")}
+              className={`px-2 py-1 rounded-md ${view === "documents" ? "bg-white text-fuchsia-700" : "hover:bg-white/20"}`}
+              aria-pressed={view === "documents"}
+            >
+              Documents
+            </button>
+            <button
+              onClick={() => setView("policies")}
+              className={`px-2 py-1 rounded-md ${view === "policies" ? "bg-white text-fuchsia-700" : "hover:bg-white/20"}`}
+              aria-pressed={view === "policies"}
+            >
+              Summary
+            </button>
+          </div>
         </div>
+
+        {loading && (
+          <p className="text-xs opacity-80">Loading policies…</p>
+        )}
+        {!loading && error && (
+          <p className="text-xs opacity-80">{error}</p>
+        )}
 
         {/* Mobile-friendly filters */}
         <div className="md:hidden space-y-2">
@@ -145,9 +227,9 @@ export default function PoliciesPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search policies"
+              placeholder={view === "documents" ? "Search documents" : "Search policies"}
               className="flex-1 rounded-md bg-white/10 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-              aria-label="Search policies"
+              aria-label={view === "documents" ? "Search documents" : "Search policies"}
             />
             <button
               onClick={() => setShowFilters((s) => !s)}
@@ -158,7 +240,7 @@ export default function PoliciesPage() {
               Filters
             </button>
           </div>
-          {(query || typeFilter !== "All" || statusFilter !== "All") && (
+          {(view === "documents" && query) || (view === "policies" && (query || typeFilter !== "All" || statusFilter !== "All")) ? (
             <div className="flex flex-wrap items-center gap-2">
               {query && (
                 <button
@@ -170,7 +252,7 @@ export default function PoliciesPage() {
                   <span aria-hidden>×</span>
                 </button>
               )}
-              {typeFilter !== "All" && (
+              {view === "policies" && typeFilter !== "All" && (
                 <button
                   onClick={() => setTypeFilter("All")}
                   className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11px]"
@@ -180,7 +262,7 @@ export default function PoliciesPage() {
                   <span aria-hidden>×</span>
                 </button>
               )}
-              {statusFilter !== "All" && (
+              {view === "policies" && statusFilter !== "All" && (
                 <button
                   onClick={() => setStatusFilter("All")}
                   className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11px]"
@@ -193,8 +275,10 @@ export default function PoliciesPage() {
               <button
                 onClick={() => {
                   setQuery("");
-                  setTypeFilter("All");
-                  setStatusFilter("All");
+                  if (view === "policies") {
+                    setTypeFilter("All");
+                    setStatusFilter("All");
+                  }
                 }}
                 className="ml-auto rounded-md bg-white/10 hover:bg-white/15 px-2 py-1 text-[11px]"
                 aria-label="Clear all filters"
@@ -202,7 +286,7 @@ export default function PoliciesPage() {
                 Clear all
               </button>
             </div>
-          )}
+          ) : null}
           {showFilters && (
             <div id="mobile-filters" className="rounded-2xl border border-white/20 bg-white/10 p-3 space-y-2">
               <div>
@@ -242,7 +326,7 @@ export default function PoliciesPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or number"
+            placeholder={view === "documents" ? "Search documents" : "Search by name or number"}
             className="rounded-md bg-white/10 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             aria-label="Search policies"
           />
@@ -272,37 +356,130 @@ export default function PoliciesPage() {
 
         {/* Add policy feature removed */}
 
-        <p className="text-xs opacity-80">{filtered.length} policy{filtered.length === 1 ? "" : "ies"} shown</p>
+        {view === "documents" ? (
+          <p className="text-xs opacity-80">{files.filter((f) => f.name.toLowerCase().includes(query.toLowerCase())).length} document(s)</p>
+        ) : (
+          <p className="text-xs opacity-80">{filtered.length} policy{filtered.length === 1 ? "" : "ies"} shown</p>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {view === "documents" ? (
+          <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {files
+              .filter((f) => f.name.toLowerCase().includes(query.toLowerCase()))
+              .map((f) => (
+                <div
+                  key={f.path}
+                  className="rounded-2xl border border-white/30 bg-white/10 p-3 shadow-sm flex items-center gap-3"
+                >
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-white flex-none">
+                    <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 3.5V8h4.5"/>
+                    </svg>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate" title={f.name}>{f.name}</p>
+                    <p className="text-[11px] opacity-75">
+                      {f.updatedAt ? formatDateDisplay(f.updatedAt) : ""}
+                      {f.size ? ` • ${Math.round((f.size / 1024) * 10) / 10} KB` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    {f.url ? (
+                      <button onClick={() => setSelectedFile(f)} className="rounded-md bg-white text-fuchsia-700 px-2 py-1">Open</button>
+                    ) : (
+                      <button disabled className="rounded-md bg-white/20 px-2 py-1 opacity-60">Open</button>
+                    )}
+                    {f.url && (
+                      <a href={f.url} download className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Download</a>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </div>
+          {selectedFile && (
+            <div className="mt-3 rounded-2xl border border-white/30 bg-white/10 p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold truncate" title={selectedFile.name}>{selectedFile.name}</p>
+                <button onClick={() => setSelectedFile(null)} className="text-xs rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Close</button>
+              </div>
+              <div className="mt-2 rounded-lg overflow-hidden bg-white">
+                {(() => {
+                  const url = selectedFile.url || "";
+                  const lower = (selectedFile.name || "").toLowerCase();
+                  const isPdf = lower.endsWith(".pdf");
+                  const isImage = [".png", ".jpg", ".jpeg", ".webp", ".gif"].some((ext) => lower.endsWith(ext));
+                  if (isPdf) {
+                    return (
+                      <iframe title={selectedFile.name} src={url} className="w-full h-[70vh]" />
+                    );
+                  }
+                  if (isImage) {
+                    // eslint-disable-next-line @next/next/no-img-element
+                    return <img src={url} alt={selectedFile.name} className="w-full h-auto" />;
+                  }
+                  return (
+                    <div className="p-3 text-xs text-black">
+                      <p>This file type cannot be previewed. Use Download to view it.</p>
+                      <a href={url} download className="mt-2 inline-block rounded bg-black text-white px-3 py-1.5">Download</a>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+          </>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filtered.map((p) => (
-            <div key={p.id} className="rounded-2xl border border-white/20 bg-white/10 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs opacity-80">{p.type}</p>
-                  <h2 className="text-lg font-semibold">{p.name}</h2>
+            <div key={p.id} className="rounded-2xl border border-white/30 bg-white/10 p-3 shadow-sm">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-400 to-fuchsia-600 text-white flex-none">
+                  <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+                    <path d="M6 3h9a2 2 0 0 1 2 2v14l-6-3-6 3V5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[11px] opacity-80">{p.type}</p>
+                      <h2 className="text-base font-semibold truncate" title={p.name}>{p.name}</h2>
+                    </div>
+                    <span className={`text-[11px] rounded px-2 py-1 ${p.status === "Active" ? "bg-white/20" : "bg-white/10"}`}>{p.status}</span>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg bg-white/5 p-2">
+                      <p className="opacity-75">Coverage</p>
+                      <p className="font-semibold">{p.coverage}</p>
+                    </div>
+                    <div className="rounded-lg bg-white/5 p-2">
+                      <p className="opacity-75">Deductible</p>
+                      <p className="font-semibold">{p.deductible || "—"}</p>
+                    </div>
+                    <div className="rounded-lg bg-white/5 p-2 col-span-2">
+                      <p className="opacity-75">Renewal</p>
+                      <p className="font-semibold">{p.renewalISO ? formatDateDisplay(p.renewalISO) : "—"}</p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[11px] opacity-75 truncate" title={p.number}>Policy No: {p.number}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                    <button onClick={() => setExpandedId((id) => (id === p.id ? "" : p.id))} className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">{expandedId === p.id ? "Hide" : "Details"}</button>
+                    <button onClick={() => handleCopy(p.number)} className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Copy number</button>
+                    <button onClick={() => handleDownloadCard(p)} className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Download e-card</button>
+                    <button onClick={() => handleRenewalICS(p)} className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Renewal reminder</button>
+                    <button onClick={() => handleDelete(p.id)} className="rounded-md bg-white/10 hover:bg-white/15 px-2 py-1">Remove</button>
+                  </div>
+                  {expandedId === p.id && (
+                    <div className="mt-3 rounded-lg bg-white/5 p-3 text-sm opacity-90">
+                      <p>{p.details || "No additional details."}</p>
+                    </div>
+                  )}
                 </div>
-                <span className={`text-xs rounded px-2 py-1 ${p.status === "Active" ? "bg-white/20" : "bg-white/10"}`}>{p.status}</span>
               </div>
-              <p className="mt-2 text-sm opacity-90">Coverage: {p.coverage} • {p.deductible || "—"}</p>
-              <p className="mt-1 text-xs opacity-75">Renewal: {p.renewalISO ? formatDateDisplay(p.renewalISO) : "—"} • Policy No: {p.number}</p>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <button onClick={() => setExpandedId((id) => (id === p.id ? "" : p.id))} className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">{expandedId === p.id ? "Hide" : "Details"}</button>
-                <button onClick={() => handleCopy(p.number)} className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Copy number</button>
-                <button onClick={() => handleDownloadCard(p)} className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Download e-card</button>
-                <button onClick={() => handleRenewalICS(p)} className="rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Renewal reminder</button>
-                <button onClick={() => handleDelete(p.id)} className="rounded-md bg-white/10 hover:bg-white/15 px-2 py-1">Remove</button>
-              </div>
-
-              {expandedId === p.id && (
-                <div className="mt-3 rounded-lg bg-white/5 p-3 text-sm opacity-90">
-                  <p>{p.details || "No additional details."}</p>
-                </div>
-              )}
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </div>
     </section>
   );

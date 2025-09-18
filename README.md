@@ -19,7 +19,7 @@ Main pages under `src/app/`:
 - `/branch-locator` — Branches and maps links
 - `/notifications` — Alerts center
 - `/appointments` — Book a call/visit
-- `/ai` — AIVA AI assistant (placeholder)
+- `/ai` — AIVA AI assistant
 - `/profile` — User profile
 
 Branding and gradient: `src/app/layout.tsx`
@@ -27,6 +27,22 @@ Branding and gradient: `src/app/layout.tsx`
 Global Tailwind styles: `src/app/globals.css`
 
 ## Learn More
+
+## Environment
+
+Create a `.env.local` in the project root:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role
+# OpenAI
+OPENAI_API_KEY=your-openai-api-key
+```
+
+Notes:
+- The server route `/api/ai/chat` uses `OPENAI_API_KEY`.
+- Policies features use Supabase URL and keys above.
 
 To learn more about Next.js, take a look at the following resources:
 
