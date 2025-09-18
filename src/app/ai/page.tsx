@@ -6,12 +6,40 @@ type ChatRole = "user" | "assistant";
 type ChatMessage = { role: ChatRole; content: string };
 
 export default function AIPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: "Hi, I’m AIVA. How can I help with your insurance today?" },
-  ]);
+  const initialGreeting: ChatMessage = {
+    role: "assistant",
+    content: "Hi, I’m AIVA. How can I help with your insurance today?",
+  };
+  const STORAGE_KEY = "aiva_ai_chat";
+
+  const [messages, setMessages] = useState<ChatMessage[]>([initialGreeting]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as ChatMessage[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setMessages(parsed);
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist to localStorage when messages change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // ignore
+    }
+  }, [messages]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -47,11 +75,33 @@ export default function AIPage() {
     if (e.key === "Enter") handleSend();
   };
 
+  const handleClear = () => {
+    const ok = confirm("Clear chat history?");
+    if (!ok) return;
+    setMessages([initialGreeting]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <section className="px-4 py-6 sm:py-10">
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl sm:text-3xl font-bold">AIVA AI</h1>
-        <p className="mt-2 opacity-90">Ask AIVA to help with claims, documents, and policy info.</p>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">AIVA AI</h1>
+            <p className="mt-2 opacity-90">Ask AIVA to help with claims, documents, and policy info.</p>
+          </div>
+          <button
+            onClick={handleClear}
+            className="inline-flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 text-sm ring-1 ring-white/20 hover:bg-white/15"
+            aria-label="Clear chat history"
+          >
+            Clear chat
+          </button>
+        </div>
         <div className="mt-6 rounded-2xl border border-white/30 bg-white/10 p-4">
           <div
             ref={listRef}
