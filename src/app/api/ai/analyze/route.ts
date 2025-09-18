@@ -14,7 +14,7 @@ type PdfJsDocument = { numPages: number; getPage: (n: number) => Promise<PdfJsPa
 type PdfJsPage = {
   getTextContent: () => Promise<{ items: Array<{ str?: unknown }> }>;
   getViewport: (opts: { scale: number }) => { width: number; height: number };
-  render: (args: { canvasContext: any; viewport: { width: number; height: number } }) => { promise: Promise<void> };
+  render: (args: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> };
 };
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
@@ -99,7 +99,7 @@ export async function POST(req: Request): Promise<Response> {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const filename = (file as any).name || "upload";
+    const filename = (file as unknown as { name?: string }).name || "upload";
     const contentType = file.type || "application/octet-stream";
 
     let extracted = "";
@@ -117,7 +117,7 @@ export async function POST(req: Request): Promise<Response> {
         temperature: 0.2,
         messages: [
           { role: "system", content: "Extract all readable text from this image. Return plain text only." },
-          { role: "user", content: [ { type: "image_url", image_url: { url: data64, detail: "high" } } ] as any },
+          { role: "user", content: [ { type: "image_url", image_url: { url: data64, detail: "high" } } ] },
         ],
       });
       extracted = resp.choices?.[0]?.message?.content || "";
