@@ -121,47 +121,7 @@ export default function AIPage() {
           timeoutMs: 60000,
         });
         const data = await res.json();
-        if (isPdf && (res.status === 501 || !res.ok || !data?.content)) {
-          // Final client-side OCR fallback: render pages and call translate-images
-          try {
-            const pdfjs = await import("pdfjs-dist/legacy/build/pdf");
-            (pdfjs as unknown as { GlobalWorkerOptions: { workerSrc: string }; version: string }).GlobalWorkerOptions.workerSrc =
-              `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjs as unknown as { version: string }).version}/pdf.worker.min.js`;
-            const ab = await file.arrayBuffer();
-            const loadingTask = (pdfjs as unknown as { getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getViewport: (o: { scale: number }) => { width: number; height: number }; render: (a: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } }> }> } }).getDocument({ data: ab });
-            const doc = await loadingTask.promise;
-            const limit = Math.min(doc.numPages || 1, 5);
-            const images: string[] = [];
-            for (let i = 1; i <= limit; i += 1) {
-              const page = await doc.getPage(i);
-              const viewport = page.getViewport({ scale: 1.6 });
-              const canvas = document.createElement("canvas");
-              const ctx = canvas.getContext("2d");
-              if (!ctx) continue;
-              canvas.width = viewport.width;
-              canvas.height = viewport.height;
-              await page.render({ canvasContext: ctx, viewport }).promise;
-              const raw = canvas.toDataURL("image/jpeg", 0.7);
-              const small = await downscaleDataUrl(raw, 1400, 0.65);
-              images.push(small);
-            }
-            if (images.length) {
-              const visionRes = await fetchWithTimeout("/api/translate-images", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ images, targetLanguage: targetLang, mode, question: input.trim() }),
-                timeoutMs: 60000,
-              });
-              const visionJson = await visionRes.json();
-              if (visionRes.ok && visionJson?.translated) {
-                setMessages((prev) => [...prev, { role: "assistant", content: visionJson.translated }]);
-                return;
-              }
-            }
-          } catch {
-            // ignore and fall through
-          }
-        }
+        // No client-side pdf.js fallback to avoid deployment issues. If server failed, surface error below.
         if (res.ok && data?.content) {
           setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
         } else {

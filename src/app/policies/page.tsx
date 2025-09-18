@@ -454,53 +454,8 @@ export default function PoliciesPage() {
                             } catch {}
 
                             if (isPdf) {
-                              // Client-side OCR fallback: render first pages to images and send to Vision
-                              try {
-                                const pdfjs = await import("pdfjs-dist/legacy/build/pdf");
-                                (pdfjs as unknown as { GlobalWorkerOptions: { workerSrc: string }; version: string }).GlobalWorkerOptions.workerSrc =
-                                  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjs as unknown as { version: string }).version}/pdf.worker.min.js`;
-                                // Fetch as arrayBuffer first to avoid CORS tainting, then feed bytes
-                                const ab = await (await fetch(selectedFile.url as string, { cache: "no-store" })).arrayBuffer();
-                                const loadingTask = (pdfjs as unknown as { getDocument: (opts: unknown) => { promise: Promise<{ numPages: number; getPage: (n: number) => Promise<{ getViewport: (o: { scale: number }) => { width: number; height: number }; render: (a: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> } }> }> } }).getDocument({ data: ab });
-                                const doc = await loadingTask.promise;
-                                const images: string[] = [];
-                                const pageCount = Math.min(doc.numPages || 1, 2);
-                                for (let i = 1; i <= pageCount; i += 1) {
-                                  const page = await doc.getPage(i);
-                                  const viewport = page.getViewport({ scale: 1.1 });
-                                  const canvas = document.createElement("canvas");
-                                  const ctx = canvas.getContext("2d");
-                                  if (!ctx) continue;
-                                  canvas.width = viewport.width;
-                                  canvas.height = viewport.height;
-                                  await page.render({ canvasContext: ctx, viewport }).promise;
-                                  const rawUrl = canvas.toDataURL("image/jpeg", 0.7);
-                                  const smallUrl = await downscaleDataUrl(rawUrl, 1280, 0.6);
-                                  images.push(smallUrl);
-                                }
-                                if (images.length) {
-                                  let combined = "";
-                                  for (let i = 0; i < images.length; i += 1) {
-                                    const single = images[i];
-                                    const visionRes = await fetch("/api/translate-images", {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ images: [single], targetLanguage: lang }),
-                                    });
-                                    const visionJson = await visionRes.json();
-                                    if (visionRes.ok && visionJson?.translated) {
-                                      combined += (combined ? "\n\n" : "") + visionJson.translated;
-                                    } else if (visionJson?.error) {
-                                      combined += (combined ? "\n\n" : "") + visionJson.error;
-                                    }
-                                  }
-                                  setTranslated(combined || "OCR translation failed.");
-                                } else {
-                                  setTranslated("No extractable text or images.");
-                                }
-                              } catch (err) {
-                                setTranslated(err instanceof Error ? err.message : "Translation failed.");
-                              }
+                              // Client-side pdf.js fallback removed for deploy stability. Show a helpful message.
+                              setTranslated("No extractable text from PDF on server. Please download and upload to AI page for OCR translation.");
                             } else {
                               setTranslated("Translation failed.");
                             }

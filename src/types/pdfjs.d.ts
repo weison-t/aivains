@@ -1,2 +1,2 @@
-declare module 'pdfjs-dist/legacy/build/pdf';
+// Intentionally left empty. We no longer reference legacy build entry.
 
