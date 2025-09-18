@@ -69,6 +69,29 @@ export default function PoliciesPage() {
   const [view, setView] = useState<"documents" | "policies">("documents");
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<StorageFile | null>(null);
+  const [translated, setTranslated] = useState<string>("");
+  const [translating, setTranslating] = useState<boolean>(false);
+  const downscaleDataUrl = async (src: string, maxDim = 1280, quality = 0.6): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        const scale = Math.min(1, maxDim / Math.max(w, h));
+        const nw = Math.max(1, Math.round(w * scale));
+        const nh = Math.max(1, Math.round(h * scale));
+        const c = document.createElement("canvas");
+        c.width = nw;
+        c.height = nh;
+        const cx = c.getContext("2d");
+        if (!cx) return resolve(src);
+        cx.drawImage(img, 0, 0, nw, nh);
+        resolve(c.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => resolve(src);
+      img.src = src;
+    });
+  };
 
   // Add policy feature removed per request
 
@@ -362,7 +385,7 @@ export default function PoliciesPage() {
         )}
 
         {view === "documents" ? (
-          <>
+          <div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {files
               .filter((f) => f.name.toLowerCase().includes(query.toLowerCase()))
@@ -400,7 +423,111 @@ export default function PoliciesPage() {
             <div className="mt-3 rounded-2xl border border-white/30 bg-white/10 p-3 shadow-sm">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold truncate" title={selectedFile.name}>{selectedFile.name}</p>
-                <button onClick={() => setSelectedFile(null)} className="text-xs rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Close</button>
+                <div className="flex items-center gap-2">
+                  <div className="hidden sm:inline text-[11px] opacity-80">Translate:</div>
+                  {(["English","中文","ไทย","Bahasa Melayu"] as const).map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={async () => {
+                        if (!selectedFile?.url) return;
+                        setTranslating(true);
+                        setTranslated("");
+                        try {
+                          const lower = (selectedFile.name || "").toLowerCase();
+                          const isPdf = lower.endsWith(".pdf");
+                          const isImage = [".png", ".jpg", ".jpeg", ".webp", ".gif"].some((ext) => lower.endsWith(ext));
+                          if (isPdf || isImage) {
+                            // Attempt server-side translation first (PDF text or OCR)
+                            let serverTranslated = "";
+                            try {
+                              const res = await fetch("/api/translate", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ url: selectedFile.url, filename: selectedFile.name, targetLanguage: lang, storagePath: selectedFile.path, maxPages: 8 }),
+                              });
+                              const data = await res.json().catch(() => ({}));
+                              if (res.ok && data?.translated) {
+                                serverTranslated = data.translated as string;
+                                setTranslated(serverTranslated);
+                                return;
+                              }
+                            } catch {}
+
+                            if (isPdf) {
+                              // Client-side OCR fallback: render first pages to images and send to Vision
+                              try {
+                                const pdfjs = await import("pdfjs-dist/legacy/build/pdf");
+                                // @ts-ignore
+                                pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${(pdfjs as any).version}/pdf.worker.min.js`;
+                                // Fetch as arrayBuffer first to avoid CORS tainting, then feed bytes
+                                const ab = await (await fetch(selectedFile.url as string, { cache: "no-store" })).arrayBuffer();
+                                const loadingTask = (pdfjs as any).getDocument({ data: ab });
+                                const doc = await loadingTask.promise;
+                                const images: string[] = [];
+                                const pageCount = Math.min(doc.numPages || 1, 2);
+                                for (let i = 1; i <= pageCount; i += 1) {
+                                  const page = await doc.getPage(i);
+                                  const viewport = page.getViewport({ scale: 1.1 });
+                                  const canvas = document.createElement("canvas");
+                                  const ctx = canvas.getContext("2d");
+                                  if (!ctx) continue;
+                                  canvas.width = viewport.width;
+                                  canvas.height = viewport.height;
+                                  await page.render({ canvasContext: ctx, viewport }).promise;
+                                  const rawUrl = canvas.toDataURL("image/jpeg", 0.7);
+                                  const smallUrl = await downscaleDataUrl(rawUrl, 1280, 0.6);
+                                  images.push(smallUrl);
+                                }
+                                if (images.length) {
+                                  let combined = "";
+                                  for (let i = 0; i < images.length; i += 1) {
+                                    const single = images[i];
+                                    const visionRes = await fetch("/api/translate-images", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ images: [single], targetLanguage: lang }),
+                                    });
+                                    const visionJson = await visionRes.json();
+                                    if (visionRes.ok && visionJson?.translated) {
+                                      combined += (combined ? "\n\n" : "") + visionJson.translated;
+                                    } else if (visionJson?.error) {
+                                      combined += (combined ? "\n\n" : "") + visionJson.error;
+                                    }
+                                  }
+                                  setTranslated(combined || "OCR translation failed.");
+                                } else {
+                                  setTranslated("No extractable text or images.");
+                                }
+                              } catch (err) {
+                                setTranslated(err instanceof Error ? err.message : "Translation failed.");
+                              }
+                            } else {
+                              setTranslated("Translation failed.");
+                            }
+                          } else {
+                            // For text-like files or fallback, fetch text via fetch and send to translate-text
+                            const raw = await fetch(selectedFile.url as string);
+                            const text = await raw.text();
+                            const res = await fetch("/api/translate-text", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ text, targetLanguage: lang }),
+                            });
+                            const data = await res.json();
+                            if (data?.translated) setTranslated(data.translated);
+                          }
+                        } catch {
+                          setTranslated("Translation failed. Please try again.");
+                        } finally {
+                          setTranslating(false);
+                        }
+                      }}
+                      className="text-xs rounded-md bg-white/20 hover:bg-white/25 px-2 py-1"
+                      aria-label={`Translate to ${lang}`}
+                    >{lang}</button>
+                  ))}
+                  <button onClick={() => { setSelectedFile(null); setTranslated(""); }} className="text-xs rounded-md bg-white/20 hover:bg-white/25 px-2 py-1">Close</button>
+                </div>
               </div>
               <div className="mt-2 rounded-lg overflow-hidden bg-white">
                 {(() => {
@@ -410,7 +537,12 @@ export default function PoliciesPage() {
                   const isImage = [".png", ".jpg", ".jpeg", ".webp", ".gif"].some((ext) => lower.endsWith(ext));
                   if (isPdf) {
                     return (
-                      <iframe title={selectedFile.name} src={url} className="w-full h-[70vh]" />
+                      <object data={url} type="application/pdf" className="w-full h-[70vh]">
+                        <div className="p-3 text-xs text-black">
+                          <p>Unable to display PDF inline.</p>
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded bg-black text-white px-3 py-1.5">Open in new tab</a>
+                        </div>
+                      </object>
                     );
                   }
                   if (isImage) {
@@ -425,9 +557,19 @@ export default function PoliciesPage() {
                   );
                 })()}
               </div>
+              {(translating || translated) && (
+                <div className="mt-3 rounded-lg bg-white/5 p-3">
+                  <p className="text-xs opacity-80">Translation</p>
+                  {translating ? (
+                    <p className="text-sm">Translating…</p>
+                  ) : (
+                    <pre className="mt-1 whitespace-pre-wrap text-sm">{translated}</pre>
+                  )}
+                </div>
+              )}
             </div>
           )}
-          </>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filtered.map((p) => (
