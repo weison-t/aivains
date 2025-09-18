@@ -129,38 +129,8 @@ export async function POST(req: Request): Promise<Response> {
         // Server-side OCR: render PDF pages to images and pass to Vision
         if (contentType.includes("application/pdf") || (effectiveFilename || "").toLowerCase().endsWith(".pdf")) {
           try {
-            const pdfjsLib = await loadPdfjs();
-            pdfjsLib.GlobalWorkerOptions.workerSrc = null;
-            const loadingTask = pdfjsLib.getDocument({ data: buffer, disableFontFace: true, useWorkerFetch: false, isEvalSupported: false, disableRange: true });
-            const doc = await loadingTask.promise;
-            const total = doc.numPages as number;
-            const limit = Math.max(1, Math.min(maxPages ?? Math.min(total, 8), total));
-            const images: string[] = [];
-            for (let i = 1; i <= limit; i += 1) {
-              const page = await doc.getPage(i);
-              const viewport = page.getViewport({ scale: 2 });
-              const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-              const ctx = canvas.getContext("2d");
-              await page.render({ canvasContext: ctx, viewport }).promise;
-              const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-              images.push(dataUrl);
-            }
-            if (images.length > 0) {
-              const perPageOutputs: string[] = [];
-              for (let idx = 0; idx < images.length; idx += 1) {
-                const u = images[idx];
-                const vision = await openai.chat.completions.create({
-                  model: "gpt-4o",
-                  temperature: 0.2,
-                  messages: [
-                    { role: "system", content: `You are an OCR+translation assistant. Extract text from this document page image and translate into ${targetLanguage}. Keep structure succinct and readable. Return only the translation.` },
-                    { role: "user", content: [{ type: "text", text: `Translate page ${idx + 1}.` }, { type: "image_url", image_url: { url: u, detail: "high" } }] },
-                  ],
-                });
-                perPageOutputs.push(vision.choices?.[0]?.message?.content || "");
-              }
-              translated = perPageOutputs.filter(Boolean).join("\n\n");
-            }
+            // Skip server PDF OCR due to pdfjs module availability on Vercel.
+            translated = "";
           } catch {
             translated = "";
           }

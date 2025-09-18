@@ -1,22 +1,9 @@
 import OpenAI from "openai";
-import { createCanvas } from "canvas";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
-import { loadPdfjs, type PdfJsModule } from "../_pdfjs";
 
 export const runtime = "nodejs";
 
 type Mode = "chat" | "summarize" | "translate";
-
-type PdfJsModule = {
-  GlobalWorkerOptions: { workerSrc: string };
-  getDocument: (opts: unknown) => { promise: Promise<PdfJsDocument> };
-};
-type PdfJsDocument = { numPages: number; getPage: (n: number) => Promise<PdfJsPage> };
-type PdfJsPage = {
-  getTextContent: () => Promise<{ items: Array<{ str?: unknown }> }>;
-  getViewport: (opts: { scale: number }) => { width: number; height: number };
-  render: (args: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> };
-};
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
@@ -24,59 +11,11 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     const res = await parsePdf(buffer);
     if (res.text && res.text.trim()) return res.text.trim();
   } catch {}
-  try {
-    const pdfjs: PdfJsModule = await loadPdfjs();
-    pdfjs.GlobalWorkerOptions.workerSrc = null as unknown as string;
-    const doc = await pdfjs.getDocument({ data: buffer, disableFontFace: true, isEvalSupported: false }).promise;
-    const texts: string[] = [];
-    const limit = Math.min(doc.numPages || 1, 20);
-    for (let i = 1; i <= limit; i += 1) {
-      const page = await doc.getPage(i);
-      const tc = await page.getTextContent();
-      const items = (tc && Array.isArray((tc as { items?: unknown }).items)) ? (tc as { items: Array<{ str?: unknown }> }).items : [];
-      const pageStr = items.map((it) => (typeof it.str === "string" ? it.str : "")).join(" ");
-      if (pageStr.trim()) texts.push(pageStr);
-    }
-    return texts.join("\n\n").trim();
-  } catch {}
   return "";
 }
 
-async function ocrPdfToText(buffer: Buffer, openai: OpenAI, maxPages = 8): Promise<string> {
-  try {
-    const pdfjs: PdfJsModule = await loadPdfjs();
-    pdfjs.GlobalWorkerOptions.workerSrc = null as unknown as string;
-    const doc = await pdfjs.getDocument({ data: buffer, disableFontFace: true, isEvalSupported: false }).promise;
-    const total = doc.numPages || 1;
-    const limit = Math.max(1, Math.min(maxPages, total));
-    const pageTexts: string[] = [];
-    for (let i = 1; i <= limit; i += 1) {
-      const page = await doc.getPage(i);
-      const viewport = page.getViewport({ scale: 1.8 });
-      const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-      const ctx = canvas.getContext("2d");
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-      const content: ChatCompletionMessageParam["content"] = [
-        { type: "text", text: `Extract page ${i} text.` },
-        { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
-      ];
-      const res = await openai.chat.completions.create({
-        model: "gpt-4o",
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: "Extract all readable text from this image. Return plain text." },
-          { role: "user", content },
-        ],
-      });
-      const pageOut = res.choices?.[0]?.message?.content || "";
-      if (pageOut.trim()) pageTexts.push(pageOut.trim());
-    }
-    return pageTexts.join("\n\n").trim();
-  } catch {
-    return "";
-  }
-}
+// We avoid server-side pdfjs OCR on Vercel due to module resolution limits.
+// Client-side OCR fallback is implemented when server returns no text.
 
 export async function POST(req: Request): Promise<Response> {
   try {
@@ -107,9 +46,6 @@ export async function POST(req: Request): Promise<Response> {
 
     if (contentType.includes("application/pdf") || filename.toLowerCase().endsWith(".pdf")) {
       extracted = await extractPdfText(buffer);
-      if (!extracted.trim()) {
-        extracted = await ocrPdfToText(buffer, openai, maxPages);
-      }
     } else if (contentType.startsWith("image/")) {
       // Vision OCR then optional summarize/translate
       const data64 = `data:${contentType};base64,${buffer.toString("base64")}`;
