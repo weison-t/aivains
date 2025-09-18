@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
-import { createCanvas } from "canvas";
-import { loadPdfjs } from "../_pdfjs";
+// Server-side pdf.js usage removed for Vercel Turbopack compatibility
 
 export const runtime = "nodejs";
 
@@ -21,28 +20,10 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
     const result = await pdfParse(buffer);
     if (result.text && result.text.trim().length > 0) return result.text;
   } catch {
-    // continue to PDF.js fallback
+    // ignore and fall through
   }
-  // Fallback: use pdfjs-dist to extract text content from pages
-  try {
-    const pdfjsLib = await loadPdfjs();
-    // Disable worker in Node environment
-    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
-    const loadingTask = pdfjsLib.getDocument({ data: buffer, disableFontFace: true, useWorkerFetch: false, isEvalSupported: false, disableRange: true });
-    const doc = await loadingTask.promise;
-    let out = "";
-    const numPages: number = doc.numPages;
-    for (let pageNum = 1; pageNum <= numPages; pageNum += 1) {
-      const page = await doc.getPage(pageNum);
-      const content = await page.getTextContent();
-      const items = (content && Array.isArray((content as { items?: unknown }).items)) ? (content as { items: Array<{ str?: unknown }> }).items : [];
-      const strings = items.map((it) => (typeof it.str === "string" ? it.str : ""));
-      out += strings.join(" ") + "\n\n";
-    }
-    return out.trim();
-  } catch {
-    return "";
-  }
+  // No server-side pdfjs fallback to avoid module resolution issues on Vercel
+  return "";
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -125,17 +106,7 @@ export async function POST(req: Request): Promise<Response> {
       });
       translated = completion.choices?.[0]?.message?.content || "";
     } else {
-      if (!sourceText) {
-        // Server-side OCR: render PDF pages to images and pass to Vision
-        if (contentType.includes("application/pdf") || (effectiveFilename || "").toLowerCase().endsWith(".pdf")) {
-          try {
-            // Skip server PDF OCR due to pdfjs module availability on Vercel.
-            translated = "";
-          } catch {
-            translated = "";
-          }
-        }
-      } else {
+      if (sourceText) {
         // Chunk long documents to ensure reliable translations
         const chunks: string[] = [];
         const maxChunk = 6000; // chars
@@ -172,6 +143,9 @@ export async function POST(req: Request): Promise<Response> {
           outputs.push(completion.choices?.[0]?.message?.content || "");
         }
         translated = outputs.filter(Boolean).join("\n\n");
+      } else {
+        // No extractable text; let client-side OCR fallback handle scanned PDFs
+        translated = "";
       }
     }
 

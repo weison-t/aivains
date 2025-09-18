@@ -250,13 +250,13 @@ export default function AIPage() {
           </div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] gap-2 items-center">
             <div className="flex gap-2">
-              <select value={mode} onChange={(e) => setMode(e.target.value as "chat" | "summarize" | "translate")} aria-label="Mode" className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/20">
+              <select value={mode} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMode(e.target.value as "chat" | "summarize" | "translate")} aria-label="Mode" className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/20">
                 <option value="chat">Chat</option>
                 <option value="summarize">Summarize</option>
                 <option value="translate">Translate</option>
               </select>
               {mode === "translate" && (
-                <select value={targetLang} onChange={(e) => setTargetLang(e.target.value)} aria-label="Target language" className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/20">
+                <select value={targetLang} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setTargetLang(e.target.value)} aria-label="Target language" className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/20">
                   <option>English</option>
                   <option>中文</option>
                   <option>ไทย</option>
@@ -266,10 +266,10 @@ export default function AIPage() {
             </div>
             <div className="flex items-center gap-2">
               <label className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-black ring-1 ring-black/10 cursor-pointer">
-                <input type="file" accept="image/*,application/pdf,text/*" capture="environment" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} aria-label="Upload attachment" />
+                <input type="file" accept="image/*,application/pdf,text/*" capture="environment" className="hidden" onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] || null)} aria-label="Upload attachment" />
                 <span className="text-sm">{file ? file.name : "Attach"}</span>
               </label>
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} aria-label="Take photo" />
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] || null)} aria-label="Take photo" />
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
