@@ -13,8 +13,6 @@ type ChatRequestBody = {
   messages: ChatMessage[];
 };
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function POST(req: Request): Promise<Response> {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -23,6 +21,8 @@ export async function POST(req: Request): Promise<Response> {
         { status: 500 }
       );
     }
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const body = (await req.json()) as ChatRequestBody;
     if (!body || !Array.isArray(body.messages)) {
