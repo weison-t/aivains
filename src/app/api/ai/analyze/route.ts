@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions.mjs";
+// Removed unused ChatCompletionMessageParam import
 
 export const runtime = "nodejs";
 
@@ -29,8 +29,9 @@ export async function POST(req: Request): Promise<Response> {
     const mode = (form.get("mode") as string) as Mode || "chat";
     const targetLanguage = (form.get("targetLang") as string) || "English";
     const question = (form.get("question") as string) || "";
-    const maxPagesStr = (form.get("maxPages") as string) || "";
-    const maxPages = Math.max(1, Math.min(parseInt(maxPagesStr || "5", 10) || 5, 10));
+    // maxPages accepted for compatibility but not used in server path
+    const _maxPagesStr = (form.get("maxPages") as string) || "";
+    const _maxPages = Math.max(1, Math.min(parseInt(_maxPagesStr || "5", 10) || 5, 10));
     const file = form.get("file") as File | null;
 
     if (!file) {

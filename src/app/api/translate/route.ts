@@ -34,7 +34,7 @@ export async function POST(req: Request): Promise<Response> {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const body = (await req.json()) as TranslateRequest;
-    const { url, targetLanguage, filename, storagePath, maxPages } = body || {};
+    const { url, targetLanguage, filename, storagePath } = body || {};
     if (!targetLanguage) {
       return Response.json({ error: "Missing targetLanguage" }, { status: 400 });
     }
