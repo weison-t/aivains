@@ -445,7 +445,7 @@ export default function AIPage() {
           const keys = [...changedLocal, ...changedAI];
           setMessages((prev) => [...prev, { role: "assistant", content: `Captured: ${keys.join(", ")}. You can continue or press Submit below.` }]);
         } else {
-          setMessages((prev) => [...prev, { role: "assistant", content: "Noted. If this was a claim detail, try 'set field=value' (e.g., set email=john@x.com)." }]);
+          // Keep UI clean; no assistant line for unmatched text
         }
         setInput("");
         setLoading(false);
