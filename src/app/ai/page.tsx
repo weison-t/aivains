@@ -168,6 +168,19 @@ export default function AIPage() {
         const v = obj[k];
         return typeof v === "string" ? v : undefined;
       };
+      // Normalize potential natural date strings to numeric
+      const normalizeField = (k: string, v: string | undefined): string | undefined => {
+        if (!v) return v;
+        if (k === "incidentDateTime") {
+          const ndt = parseNaturalDateTime(v) || v;
+          return ndt;
+        }
+        if (k === "departureDate" || k === "returnDate" || k === "signatureDate") {
+          const nd = parseNaturalDate(v) || v;
+          return nd;
+        }
+        return v;
+      };
       const next: TravelClaimDraft = { ...formDraft };
       next.fullName = pick("fullName") ?? next.fullName;
       next.policyNo = pick("policyNo") ?? next.policyNo;
@@ -175,18 +188,18 @@ export default function AIPage() {
       next.destinationCountry = pick("destinationCountry") ?? next.destinationCountry;
       next.phone = pick("phone") ?? next.phone;
       next.email = pick("email") ?? next.email;
-      next.departureDate = pick("departureDate") ?? next.departureDate;
-      next.returnDate = pick("returnDate") ?? next.returnDate;
+      next.departureDate = normalizeField("departureDate", pick("departureDate")) ?? next.departureDate;
+      next.returnDate = normalizeField("returnDate", pick("returnDate")) ?? next.returnDate;
       next.airline = pick("airline") ?? next.airline;
       next.claimTypes = pick("claimTypes") ?? next.claimTypes;
       next.otherClaimDetail = pick("otherClaimDetail") ?? next.otherClaimDetail;
-      next.incidentDateTime = pick("incidentDateTime") ?? next.incidentDateTime;
+      next.incidentDateTime = normalizeField("incidentDateTime", pick("incidentDateTime")) ?? next.incidentDateTime;
       next.incidentLocation = pick("incidentLocation") ?? next.incidentLocation;
       next.incidentDescription = pick("incidentDescription") ?? next.incidentDescription;
       next.bankName = pick("bankName") ?? next.bankName;
       next.accountNo = pick("accountNo") ?? next.accountNo;
       next.accountName = pick("accountName") ?? next.accountName;
-      next.signatureDate = pick("signatureDate") ?? next.signatureDate;
+      next.signatureDate = normalizeField("signatureDate", pick("signatureDate")) ?? next.signatureDate;
       setFormDraft(next);
       const filledKeys = Object.keys(obj).filter((k) => typeof obj[k] === "string").slice(0, 8); // preview few keys
       setMessages((prev) => [...prev, { role: "assistant", content: `I pre-filled some fields from the attachment: ${filledKeys.join(", ") || "-"}. Review the preview below.` }]);
@@ -522,12 +535,16 @@ export default function AIPage() {
         }
         if (changedLocal.length || changedAI.length) {
           const keys = [...changedLocal, ...changedAI];
+          // After mergeDraft, read the current draft to ensure normalized values appear in recap
+          const current = ((): TravelClaimDraft => {
+            let snapshot: TravelClaimDraft = {};
+            setFormDraft((prev) => { snapshot = { ...prev }; return prev; });
+            return snapshot;
+          })();
           const pairs: string[] = [];
-          const fromLocal = local as Record<string, unknown>;
-          const fromAI = aiObj as Record<string, unknown>;
           for (const k of keys) {
-            const v = (fromLocal[k] as string) || (fromAI[k] as string) || "";
-            if (v) pairs.push(`${k}=${v}`);
+            const v = (current as Record<string, unknown>)[k];
+            if (typeof v === "string" && v) pairs.push(`${k}=${v}`);
           }
           setMessages((prev) => [...prev, { role: "assistant", content: `Captured: ${pairs.join(", ")}. You can continue or press Submit below.` }]);
         } else {
