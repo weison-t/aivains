@@ -1,11 +1,15 @@
 // src/app/lib/supabaseClient.ts
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
+let client: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("Supabase env vars are missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.");
-}
-
-export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
+export const getSupabaseClient = (): SupabaseClient => {
+  if (client) return client;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string | undefined;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Supabase configuration missing at runtime.");
+  }
+  client = createClient(supabaseUrl, supabaseAnonKey);
+  return client;
+};

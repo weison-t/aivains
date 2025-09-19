@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { getSupabaseClient } from "../lib/supabaseClient";
 
 type PolicyStatus = "Active" | "Expired";
 type PolicyType = "Health" | "Motor" | "Property" | "Life";
@@ -93,6 +93,7 @@ export default function PoliciesPage() {
             }
           } catch {}
 
+          const supabase = getSupabaseClient();
           const { data, error: err } = await supabase
             .from("policies")
             .select("id,name,number,type,status,coverage,deductible,renewalISO,details")
@@ -154,6 +155,7 @@ export default function PoliciesPage() {
       process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
     if (SUPA_READY) {
+      const supabase = getSupabaseClient();
       const { error: err } = await supabase.from("policies").delete().eq("id", id);
       if (err) {
         alert("Failed to delete on server. Removing locally only.");
