@@ -282,6 +282,7 @@ export default function AIPage() {
       return out;
     } catch { return {}; }
   };
+  const isQuestion = (text: string): boolean => /\?|^(what|how|when|where|which|why|can|should|do|does|is|are)\b/i.test(text.trim());
   const listRef = useRef<HTMLDivElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -445,7 +446,33 @@ export default function AIPage() {
           const keys = [...changedLocal, ...changedAI];
           setMessages((prev) => [...prev, { role: "assistant", content: `Captured: ${keys.join(", ")}. You can continue or press Submit below.` }]);
         } else {
-          // Keep UI clean; no assistant line for unmatched text
+          // If user asked a question, provide guidance; otherwise keep UI clean
+          if (isQuestion(trimmed)) {
+            try {
+              const res = await fetchWithTimeout("/api/ai/process-text", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  text: trimmed,
+                  mode: "chat",
+                  question:
+                    "Answer the user's question with concise guidance for filling a travel insurance claim. Include required docs and which fields map to which info (full name, policy no, passport, travel dates, incident details, bank info). Use short sentences or bullets. End with: 'You can tell me details or attach files; I will fill them.'",
+                }),
+                timeoutMs: 30000,
+              });
+              const j = await res.json();
+              const content: string | undefined = j?.content;
+              setMessages((prev) => [
+                ...prev,
+                { role: "assistant", content: content || "Provide your details or attach files and I will fill the form preview for you." },
+              ]);
+            } catch {
+              setMessages((prev) => [
+                ...prev,
+                { role: "assistant", content: "You can tell me your details (e.g., email, policy no, travel dates) or attach files; I will fill them in the preview." },
+              ]);
+            }
+          }
         }
         setInput("");
         setLoading(false);
