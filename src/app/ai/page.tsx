@@ -501,7 +501,13 @@ export default function AIPage() {
             };
             const k = map[key.toLowerCase()];
             if (k) {
-              mergeDraft({ [k]: val } as Partial<TravelClaimDraft>);
+              let normalized = val;
+              if (k === "incidentDateTime") {
+                normalized = parseNaturalDateTime(val) || val;
+              } else if (k === "departureDate" || k === "returnDate" || k === "signatureDate") {
+                normalized = parseNaturalDate(val) || val;
+              }
+              mergeDraft({ [k]: normalized } as Partial<TravelClaimDraft>);
               setMessages((prev) => [...prev, { role: "assistant", content: `Updated ${k}. Check the preview below.` }]);
             } else {
               setMessages((prev) => [...prev, { role: "assistant", content: "Unknown field. You can use: set email=..., set policy=..., set phone=..., etc." }]);
@@ -735,7 +741,7 @@ export default function AIPage() {
                 <p><span className="opacity-80">Airline:</span> {formDraft.airline || "-"}</p>
                 <p className="sm:col-span-2"><span className="opacity-80">Claim Types:</span> {formDraft.claimTypes || "-"}</p>
                 <p className="sm:col-span-2"><span className="opacity-80">Other Claim Detail:</span> {formDraft.otherClaimDetail || "-"}</p>
-                <p><span className="opacity-80">Incident:</span> {formDraft.incidentDateTime || "-"}</p>
+                <p><span className="opacity-80">Incident:</span> {formDraft.incidentDateTime ? formDraft.incidentDateTime : "-"}</p>
                 <p><span className="opacity-80">Location:</span> {formDraft.incidentLocation || "-"}</p>
                 <p className="sm:col-span-2 whitespace-pre-wrap"><span className="opacity-80">Description:</span> {formDraft.incidentDescription || "-"}</p>
                 <p><span className="opacity-80">Bank:</span> {formDraft.bankName || "-"}</p>
