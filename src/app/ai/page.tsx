@@ -455,6 +455,10 @@ export default function AIPage() {
       } else if (mode === "form") {
         // Form Assist flow; free-order capture
         const trimmed = input.trim();
+        if (trimmed) {
+          // Always show user's message in the conversation for Form Assist
+          setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+        }
         if (!formActive) {
           setFormActive(true);
           setMessages((prev) => [
