@@ -282,6 +282,70 @@ export default function AIPage() {
       return out;
     } catch { return {}; }
   };
+  // Natural date helpers for phrases like "last Friday", "yesterday", etc.
+  const pad2 = (n: number) => n.toString().padStart(2, "0");
+  const toISODate = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const toISODateTime = (d: Date) => `${toISODate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  const weekdayIndex: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  const clone = (d: Date) => new Date(d.getTime());
+  const resolveWeekday = (base: Date, target: number, rel: "last" | "this" | "next"): Date => {
+    const b = clone(base);
+    const current = b.getDay();
+    let diff = target - current;
+    if (rel === "last") diff -= diff >= 0 ? 7 : 0;
+    if (rel === "next") diff += diff <= 0 ? 7 : 0;
+    // this => same week (could be past/future within 6 days)
+    b.setDate(b.getDate() + diff);
+    return b;
+  };
+  const parseClock = (raw: string | null): { h: number; m: number } | null => {
+    if (!raw) return null;
+    const m = raw.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (!m) return null;
+    let h = parseInt(m[1] || "0", 10);
+    const mm = parseInt(m[2] || "0", 10);
+    const ampm = (m[3] || "").toLowerCase();
+    if (ampm === "pm" && h < 12) h += 12;
+    if (ampm === "am" && h === 12) h = 0;
+    return { h, m: mm };
+  };
+  const parseNaturalDate = (text: string, base = new Date()): string | null => {
+    // 12/09/2025, 12-09-2025, 12 Sep 2025, Sep 12, 2025
+    const dateToken = text.match(/(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3,}\s+\d{4}|[A-Za-z]{3,}\s+\d{1,2},?\s+\d{4})/);
+    if (dateToken) {
+      const s = dateToken[1];
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) return toISODate(d);
+    }
+    const lower = text.toLowerCase();
+    if (/yesterday\b/.test(lower)) { const d = clone(base); d.setDate(d.getDate() - 1); return toISODate(d); }
+    if (/today\b/.test(lower)) { return toISODate(base); }
+    if (/tomorrow\b/.test(lower)) { const d = clone(base); d.setDate(d.getDate() + 1); return toISODate(d); }
+    const m = lower.match(/\b(last|this|next)\s+(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/);
+    if (m) {
+      const rel = m[1] as "last" | "this" | "next";
+      const day = weekdayIndex[m[2].slice(0, 3)];
+      if (typeof day === "number") {
+        const d = resolveWeekday(base, day, rel);
+        return toISODate(d);
+      }
+    }
+    return null;
+  };
+  const parseNaturalDateTime = (text: string, base = new Date()): string | null => {
+    const datePart = parseNaturalDate(text, base);
+    const timeMatch = text.match(/\b(?:at|@)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i);
+    if (!datePart && !timeMatch) return null;
+    let d = base;
+    if (datePart) { const dt = new Date(datePart + "T00:00:00"); if (!Number.isNaN(dt.getTime())) d = dt; }
+    if (timeMatch) {
+      const clk = parseClock(timeMatch[1]);
+      if (clk) { d.setHours(clk.h, clk.m, 0, 0); }
+    } else {
+      d.setHours(0, 0, 0, 0);
+    }
+    return toISODateTime(d);
+  };
   const isQuestion = (text: string): boolean => /\?|^(what|how|when|where|which|why|can|should|do|does|is|are)\b/i.test(text.trim());
   const listRef = useRef<HTMLDivElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -435,7 +499,20 @@ export default function AIPage() {
           }
         }
         // Heuristic + AI extraction from free text
-        const local = localExtractFromMessage(trimmed);
+        // Natural dates -> map to fields when likely
+        let local = localExtractFromMessage(trimmed);
+        if (!local.incidentDateTime) {
+          const ndt = parseNaturalDateTime(trimmed);
+          if (ndt) local = { ...local, incidentDateTime: ndt };
+        }
+        if (!local.departureDate) {
+          const dep = parseNaturalDate(trimmed);
+          if (dep && /depart|departure|start/i.test(trimmed)) local = { ...local, departureDate: dep };
+        }
+        if (!local.returnDate) {
+          const ret = parseNaturalDate(trimmed);
+          if (ret && /return|back/i.test(trimmed)) local = { ...local, returnDate: ret };
+        }
         const changedLocal = mergeDraft(local);
         let changedAI: string[] = [];
         if (changedLocal.length === 0) {
