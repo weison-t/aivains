@@ -66,6 +66,134 @@ export default function AIPage() {
     { key: "signatureDate", label: "Signature Date (YYYY-MM-DD)", required: true },
   ];
   const [formStep, setFormStep] = useState(0);
+
+  const extractFieldsFromFile = async (attached: File) => {
+    try {
+      // Build prompt asking strictly for JSON
+      const question = "Extract a JSON object with ONLY these keys if present (strings): fullName, policyNo, passportNo, destinationCountry, phone, email, departureDate, returnDate, airline, claimTypes, otherClaimDetail, incidentDateTime, incidentLocation, incidentDescription, bankName, accountNo, accountName, signatureDate. Return ONLY JSON.";
+      const isPdf = attached.type?.includes("pdf") || (attached.name || "").toLowerCase().endsWith(".pdf");
+      let text = "";
+      let content = "";
+      // Try server routes tailored to file type
+      if (isPdf) {
+        const form = new FormData();
+        form.append("mode", "chat");
+        form.append("question", question);
+        form.append("file", attached);
+        try {
+          const res = await fetchWithTimeout("/api/ai/retrieve", { method: "POST", body: form, timeoutMs: 60000 });
+          const json = await res.json();
+          if (res.ok && json?.content) content = json.content as string;
+        } catch {}
+        if (!content) {
+          const alt = new FormData();
+          alt.append("mode", "chat");
+          alt.append("question", question);
+          alt.append("file", attached);
+          try {
+            const res2 = await fetchWithTimeout("/api/ai/analyze", { method: "POST", body: alt, timeoutMs: 60000 });
+            const json2 = await res2.json();
+            if (res2.ok && json2?.content) content = json2.content as string;
+          } catch {}
+        }
+      } else {
+        const form = new FormData();
+        form.append("mode", "chat");
+        form.append("question", question);
+        form.append("file", attached);
+        try {
+          const res = await fetchWithTimeout("/api/ai/analyze", { method: "POST", body: form, timeoutMs: 60000 });
+          const json = await res.json();
+          if (res.ok && json?.content) content = json.content as string;
+        } catch {}
+        if (!content) {
+          // Fallback for images: use vision QA
+          try {
+            const data64 = await (async () => {
+              const ab = await attached.arrayBuffer();
+              const b64 = btoa(String.fromCharCode(...new Uint8Array(ab)));
+              return `data:${attached.type};base64,${b64}`;
+            })();
+            const res3 = await fetchWithTimeout("/api/translate-images", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ images: [data64], mode: "qa", question }),
+              timeoutMs: 60000,
+            });
+            const json3 = await res3.json();
+            if (res3.ok && json3?.translated) content = json3.translated as string;
+          } catch {}
+        }
+      }
+      if (!content) {
+        setMessages((prev) => [...prev, { role: "assistant", content: "I couldn't read any structured details from the attachment. You may continue answering the questions manually." }]);
+        return;
+      }
+      // Attempt to locate JSON in the content
+      let parsed: unknown = null;
+      try {
+        const start = content.indexOf("{");
+        const end = content.lastIndexOf("}");
+        const jsonSlice = start >= 0 && end > start ? content.slice(start, end + 1) : content;
+        parsed = JSON.parse(jsonSlice);
+      } catch {
+        // As last resort, ask server to convert to JSON using process-text
+        try {
+          const res = await fetchWithTimeout("/api/ai/process-text", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              text: content,
+              mode: "chat",
+              question: "Output ONLY JSON with keys: fullName, policyNo, passportNo, destinationCountry, phone, email, departureDate, returnDate, airline, claimTypes, otherClaimDetail, incidentDateTime, incidentLocation, incidentDescription, bankName, accountNo, accountName, signatureDate.",
+            }),
+            timeoutMs: 60000,
+          });
+          const j = await res.json();
+          if (res.ok && j?.content) {
+            const s = j.content as string;
+            const st = s.indexOf("{");
+            const en = s.lastIndexOf("}");
+            const slice = st >= 0 && en > st ? s.slice(st, en + 1) : s;
+            parsed = JSON.parse(slice);
+          }
+        } catch {}
+      }
+      if (!parsed || typeof parsed !== "object") {
+        setMessages((prev) => [...prev, { role: "assistant", content: "I couldn't get a clean JSON from the attachment. Please continue manually." }]);
+        return;
+      }
+      const obj = parsed as Record<string, unknown>;
+      const pick = (k: string) => {
+        const v = obj[k];
+        return typeof v === "string" ? v : undefined;
+      };
+      const next: TravelClaimDraft = { ...formDraft };
+      next.fullName = pick("fullName") ?? next.fullName;
+      next.policyNo = pick("policyNo") ?? next.policyNo;
+      next.passportNo = pick("passportNo") ?? next.passportNo;
+      next.destinationCountry = pick("destinationCountry") ?? next.destinationCountry;
+      next.phone = pick("phone") ?? next.phone;
+      next.email = pick("email") ?? next.email;
+      next.departureDate = pick("departureDate") ?? next.departureDate;
+      next.returnDate = pick("returnDate") ?? next.returnDate;
+      next.airline = pick("airline") ?? next.airline;
+      next.claimTypes = pick("claimTypes") ?? next.claimTypes;
+      next.otherClaimDetail = pick("otherClaimDetail") ?? next.otherClaimDetail;
+      next.incidentDateTime = pick("incidentDateTime") ?? next.incidentDateTime;
+      next.incidentLocation = pick("incidentLocation") ?? next.incidentLocation;
+      next.incidentDescription = pick("incidentDescription") ?? next.incidentDescription;
+      next.bankName = pick("bankName") ?? next.bankName;
+      next.accountNo = pick("accountNo") ?? next.accountNo;
+      next.accountName = pick("accountName") ?? next.accountName;
+      next.signatureDate = pick("signatureDate") ?? next.signatureDate;
+      setFormDraft(next);
+      const filledKeys = Object.keys(obj).filter((k) => typeof obj[k] === "string").slice(0, 8); // preview few keys
+      setMessages((prev) => [...prev, { role: "assistant", content: `I pre-filled some fields from the attachment: ${filledKeys.join(", ") || "-"}. Review the preview below.` }]);
+    } catch (e) {
+      setMessages((prev) => [...prev, { role: "assistant", content: `Attachment analysis failed: ${(e as Error).message}` }]);
+    }
+  };
   const listRef = useRef<HTMLDivElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -293,12 +421,13 @@ export default function AIPage() {
             </div>
             <div className="flex items-center gap-2">
               <label className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-black ring-1 ring-black/10 cursor-pointer">
-                <input type="file" accept="image/*,application/pdf,text/*" capture="environment" className="hidden" onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                <input type="file" accept="image/*,application/pdf,text/*" capture="environment" className="hidden" onChange={async (e: React.ChangeEvent<HTMLInputElement>) => {
                   const f = e.target.files?.[0] || null;
                   if (mode === "form" && f) {
                     setFormDraft((prev) => ({ ...prev, attachmentsOther: [...(prev.attachmentsOther || []), f] }));
                     // Show acknowledgement message
-                    setMessages((prev) => [...prev, { role: "assistant", content: `Attached file: ${f.name} (will be uploaded on Submit)` }]);
+                    setMessages((prev) => [...prev, { role: "assistant", content: `Attached file: ${f.name}. Trying to pre-fill details...` }]);
+                    await extractFieldsFromFile(f);
                     e.target.value = "";
                     return;
                   }
