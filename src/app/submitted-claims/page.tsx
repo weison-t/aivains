@@ -36,6 +36,7 @@ export default function SubmittedClaimsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [query, setQuery] = useState("");
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
@@ -73,6 +74,14 @@ export default function SubmittedClaimsPage() {
     return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth()+1).toString().padStart(2, "0")}/${d.getFullYear()} ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
   };
 
+  const toggleOpen = (id: string) => {
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <section className="px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-5xl">
@@ -97,16 +106,28 @@ export default function SubmittedClaimsPage() {
             {filtered.length === 0 && (
               <div className="rounded-2xl bg-white/10 ring-1 ring-white/20 p-4">No claims submitted yet.</div>
             )}
-            {filtered.map((row) => (
-              <article key={row.id} className="rounded-2xl bg-white text-black ring-1 ring-black/10 p-4 sm:p-5 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
+            {filtered.map((row) => {
+              const isOpen = openIds.has(row.id);
+              return (
+              <article key={row.id} className="rounded-2xl bg-white text-black ring-1 ring-black/10 p-0 shadow-sm overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleOpen(row.id)}
+                  aria-expanded={isOpen}
+                  className="w-full text-left px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-between gap-3 hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                >
                   <div>
                     <h2 className="text-base sm:text-lg font-semibold">{row.full_name || "Unnamed"}</h2>
                     <p className="text-xs text-black/70">Policy: {row.policy_no || "-"}</p>
                   </div>
-                  <span className="text-xs text-black/60">{fmtDate(row.created_at)}</span>
-                </div>
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-black/60">Submitted: {fmtDate(row.created_at)}</span>
+                    <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={`h-4 w-4 text-black/70 transition-transform ${isOpen ? "rotate-180" : "rotate-0"}`}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </div>
+                </button>
+
+                {isOpen && (
+                <div className="px-4 pb-4 sm:px-5 sm:pb-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <section className="space-y-1">
                     <h3 className="font-semibold">Contacts</h3>
                     <p><span className="text-black/60">Email:</span> {row.email || "-"}</p>
@@ -143,7 +164,9 @@ export default function SubmittedClaimsPage() {
                     <p><span className="text-black/60">Signature Date:</span> {fmtDate(row.signature_date)}</p>
                   </section>
                 </div>
-                <div className="mt-4 border-t border-black/10 pt-3">
+                )}
+                {isOpen && (
+                <div className="mx-4 sm:mx-5 mt-3 border-t border-black/10 pt-3 pb-4">
                   <h3 className="text-sm font-semibold">Attachments</h3>
                   <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <AttachmentGroup title="Passport" paths={row.passport_copy_paths} />
@@ -152,8 +175,9 @@ export default function SubmittedClaimsPage() {
                     <AttachmentGroup title="Other" paths={row.other_docs_paths} />
                   </div>
                 </div>
+                )}
               </article>
-            ))}
+            );})}
           </div>
         )}
       </div>
