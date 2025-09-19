@@ -537,7 +537,21 @@ export default function AIPage() {
         let aiObj: Partial<TravelClaimDraft> = {};
         if (changedLocal.length === 0) {
           aiObj = await extractFromMessageWithAI(trimmed);
-          changedAI = mergeDraft(aiObj);
+          // Normalize potential natural date phrases from AI extraction
+          const normAI: Partial<TravelClaimDraft> = { ...aiObj };
+          if (typeof normAI.incidentDateTime === "string") {
+            normAI.incidentDateTime = parseNaturalDateTime(normAI.incidentDateTime) || normAI.incidentDateTime;
+          }
+          if (typeof normAI.departureDate === "string") {
+            normAI.departureDate = parseNaturalDate(normAI.departureDate) || normAI.departureDate;
+          }
+          if (typeof normAI.returnDate === "string") {
+            normAI.returnDate = parseNaturalDate(normAI.returnDate) || normAI.returnDate;
+          }
+          if (typeof normAI.signatureDate === "string") {
+            normAI.signatureDate = parseNaturalDate(normAI.signatureDate) || normAI.signatureDate;
+          }
+          changedAI = mergeDraft(normAI);
         }
         if (changedLocal.length || changedAI.length) {
           const keys = [...changedLocal, ...changedAI];
@@ -741,7 +755,11 @@ export default function AIPage() {
                 <p><span className="opacity-80">Airline:</span> {formDraft.airline || "-"}</p>
                 <p className="sm:col-span-2"><span className="opacity-80">Claim Types:</span> {formDraft.claimTypes || "-"}</p>
                 <p className="sm:col-span-2"><span className="opacity-80">Other Claim Detail:</span> {formDraft.otherClaimDetail || "-"}</p>
-                <p><span className="opacity-80">Incident:</span> {formDraft.incidentDateTime ? formDraft.incidentDateTime : "-"}</p>
+                <p><span className="opacity-80">Incident:</span> {(() => {
+                  const v = formDraft.incidentDateTime || "";
+                  const ndt = v ? (parseNaturalDateTime(v) || v) : "";
+                  return ndt || "-";
+                })()}</p>
                 <p><span className="opacity-80">Location:</span> {formDraft.incidentLocation || "-"}</p>
                 <p className="sm:col-span-2 whitespace-pre-wrap"><span className="opacity-80">Description:</span> {formDraft.incidentDescription || "-"}</p>
                 <p><span className="opacity-80">Bank:</span> {formDraft.bankName || "-"}</p>
