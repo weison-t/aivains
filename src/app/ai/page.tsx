@@ -194,6 +194,94 @@ export default function AIPage() {
       setMessages((prev) => [...prev, { role: "assistant", content: `Attachment analysis failed: ${(e as Error).message}` }]);
     }
   };
+
+  const mergeDraft = (updates: Partial<TravelClaimDraft>): string[] => {
+    const changed: string[] = [];
+    setFormDraft((prev) => {
+      const next: TravelClaimDraft = { ...prev };
+      Object.entries(updates).forEach(([k, v]) => {
+        if (typeof v === "string" || typeof v === "boolean") {
+          const key = k as keyof TravelClaimDraft;
+          // @ts-expect-error index safe by keyof
+          const oldVal = next[key];
+          if (v && v !== oldVal) {
+            // @ts-expect-error index safe by keyof
+            next[key] = v as never;
+            changed.push(k);
+          }
+        }
+      });
+      return next;
+    });
+    return changed;
+  };
+
+  const localExtractFromMessage = (text: string): Partial<TravelClaimDraft> => {
+    const out: Partial<TravelClaimDraft> = {};
+    const lower = text.toLowerCase();
+    const get = (re: RegExp) => (text.match(re)?.[1] || "").trim();
+    const email = get(/(?:email|e-mail)\s*(?:is|:)?\s*([\w.+-]+@[\w.-]+\.[\w]{2,})/i);
+    if (email) out.email = email;
+    const phone = get(/(?:phone|tel|mobile)\s*(?:is|:)?\s*([+()\d\s-]{6,})/i);
+    if (phone) out.phone = phone;
+    const policy = get(/(?:policy(?:\s*no\.?|\s*number)?)[\s:]*([A-Za-z0-9-]{3,})/i);
+    if (policy) out.policyNo = policy;
+    const passport = get(/(?:passport(?:\s*no\.?|\s*number)?)[\s:]*([A-Za-z0-9-]{3,})/i);
+    if (passport) out.passportNo = passport;
+    const name = get(/(?:name|full\s*name)\s*(?:is|:)?\s*([A-Za-z ,.'-]{3,})/i);
+    if (name) out.fullName = name;
+    const destination = get(/(?:destination|country)\s*(?:is|to|:)?\s*([A-Za-z .'-]{2,})/i);
+    if (destination) out.destinationCountry = destination;
+    const airline = get(/(?:airline|flight)\s*(?:is|:)?\s*([A-Za-z0-9 -]{2,})/i);
+    if (airline) out.airline = airline;
+    const dep = get(/(?:departure\s*date|depart)\s*(?:is|on|:)?\s*([\d]{4}-[\d]{2}-[\d]{2})/i);
+    if (dep) out.departureDate = dep;
+    const ret = get(/(?:return\s*date|back)\s*(?:is|on|:)?\s*([\d]{4}-[\d]{2}-[\d]{2})/i);
+    if (ret) out.returnDate = ret;
+    const sig = get(/(?:signature\s*date)\s*(?:is|on|:)?\s*([\d]{4}-[\d]{2}-[\d]{2})/i);
+    if (sig) out.signatureDate = sig;
+    const bank = get(/(?:bank\s*name|bank)\s*(?:is|:)?\s*([A-Za-z .'-]{2,})/i);
+    if (bank) out.bankName = bank;
+    const accNo = get(/(?:account\s*no\.?|acct\s*no\.?|account)\s*(?:is|:)?\s*([A-Za-z0-9 -]{3,})/i);
+    if (accNo) out.accountNo = accNo;
+    const accName = get(/(?:account\s*name|acct\s*name)\s*(?:is|:)?\s*([A-Za-z .'-]{3,})/i);
+    if (accName) out.accountName = accName;
+    const where = get(/(?:location|where)\s*(?:is|:)?\s*([^\n]{3,})/i);
+    if (where) out.incidentLocation = where;
+    const when = get(/(?:incident\s*(?:date|time|datetime)|when)\s*(?:is|on|at|:)?\s*([\d]{4}-[\d]{2}-[\d]{2}(?:\s+\d{1,2}:\d{2})?)/i);
+    if (when) out.incidentDateTime = when;
+    const desc = get(/(?:description|details)\s*(?:is|:)?\s*([\s\S]{10,})/i);
+    if (desc) out.incidentDescription = desc;
+    const types = get(/(?:claim\s*types?|type\s*of\s*claim)\s*(?:is|are|:)?\s*([A-Za-z ,/]+)$/i);
+    if (types) out.claimTypes = types;
+    return out;
+  };
+
+  const extractFromMessageWithAI = async (text: string): Promise<Partial<TravelClaimDraft>> => {
+    try {
+      const res = await fetchWithTimeout("/api/ai/process-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          mode: "chat",
+          question: "Return ONLY JSON with keys: fullName, policyNo, passportNo, destinationCountry, phone, email, departureDate, returnDate, airline, claimTypes, otherClaimDetail, incidentDateTime, incidentLocation, incidentDescription, bankName, accountNo, accountName, signatureDate.",
+        }),
+        timeoutMs: 30000,
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.content) return {};
+      const s: string = j.content;
+      const st = s.indexOf("{");
+      const en = s.lastIndexOf("}");
+      const slice = st >= 0 && en > st ? s.slice(st, en + 1) : s;
+      const parsed = JSON.parse(slice) as Record<string, unknown>;
+      const out: Partial<TravelClaimDraft> = {};
+      const keys = ["fullName","policyNo","passportNo","destinationCountry","phone","email","departureDate","returnDate","airline","claimTypes","otherClaimDetail","incidentDateTime","incidentLocation","incidentDescription","bankName","accountNo","accountName","signatureDate"];
+      keys.forEach((k) => { const v = parsed[k]; if (typeof v === "string" && v.trim()) { (out as any)[k] = v.trim(); } });
+      return out;
+    } catch { return {}; }
+  };
   const listRef = useRef<HTMLDivElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -287,41 +375,79 @@ export default function AIPage() {
           ]);
         }
       } else if (mode === "form") {
-        // Form Assist flow
+        // Form Assist flow; free-order capture
         const trimmed = input.trim();
-        // Start flow
         if (!formActive) {
           setFormActive(true);
           setMessages((prev) => [
             ...prev,
-            { role: "assistant", content: "Let’s submit your travel claim. I’ll ask a few questions. You can type answers, and add attachments with the Attach button. First: " + steps[0].label } as ChatMessage,
+            { role: "assistant", content: "Form Assist engaged. Tell me any detail (e.g., 'email is john@x.com', 'policy ABC-123'). Attach files to auto-fill. When you're ready, press Submit below." } as ChatMessage,
           ]);
           setInput("");
           setLoading(false);
           return;
         }
-        // Record answer for current step
-        const current = steps[formStep];
-        if (current) {
-          setFormDraft((prev) => ({ ...prev, [current.key]: trimmed }));
-          const nextStep = formStep + 1;
-          setFormStep(nextStep);
-          if (nextStep < steps.length) {
-            setMessages((prev) => [
-              ...prev,
-              { role: "assistant", content: `Got it. Next: ${steps[nextStep].label}` } as ChatMessage,
-            ]);
-          } else {
-            setMessages((prev) => [
-              ...prev,
-              { role: "assistant", content: "All set. Please review the preview below and press Submit when ready. You can correct any field by typing: set <field>=<value> (e.g., set phone=0123456789)." } as ChatMessage,
-            ]);
+        // Allow commands: set field=value
+        if (/^set\s+\w+\s*=/.test(trimmed.toLowerCase())) {
+          const m = trimmed.match(/^set\s+(\w+)\s*=\s*([\s\S]+)$/i);
+          if (m) {
+            const key = m[1];
+            const val = m[2];
+            const map: Record<string, keyof TravelClaimDraft> = {
+              fullname: "fullName",
+              name: "fullName",
+              policyno: "policyNo",
+              policy: "policyNo",
+              passportno: "passportNo",
+              passport: "passportNo",
+              destination: "destinationCountry",
+              destinationcountry: "destinationCountry",
+              phone: "phone",
+              email: "email",
+              departure: "departureDate",
+              departuredate: "departureDate",
+              return: "returnDate",
+              returndate: "returnDate",
+              airline: "airline",
+              claimtypes: "claimTypes",
+              other: "otherClaimDetail",
+              incident: "incidentDateTime",
+              incidentdatetime: "incidentDateTime",
+              location: "incidentLocation",
+              description: "incidentDescription",
+              bank: "bankName",
+              bankname: "bankName",
+              accountno: "accountNo",
+              accountname: "accountName",
+              signaturedate: "signatureDate",
+            };
+            const k = map[key.toLowerCase()];
+            if (k) {
+              mergeDraft({ [k]: val } as Partial<TravelClaimDraft>);
+              setMessages((prev) => [...prev, { role: "assistant", content: `Updated ${k}. Check the preview below.` }]);
+            } else {
+              setMessages((prev) => [...prev, { role: "assistant", content: "Unknown field. You can use: set email=..., set policy=..., set phone=..., etc." }]);
+            }
+            setInput("");
+            setLoading(false);
+            return;
           }
-          setInput("");
-          setLoading(false);
-          return;
         }
-        // Fallback
+        // Heuristic + AI extraction from free text
+        const local = localExtractFromMessage(trimmed);
+        const changedLocal = mergeDraft(local);
+        let changedAI: string[] = [];
+        if (changedLocal.length === 0) {
+          const ai = await extractFromMessageWithAI(trimmed);
+          changedAI = mergeDraft(ai);
+        }
+        if (changedLocal.length || changedAI.length) {
+          const keys = [...changedLocal, ...changedAI];
+          setMessages((prev) => [...prev, { role: "assistant", content: `Captured: ${keys.join(", ")}. You can continue or press Submit below.` }]);
+        } else {
+          setMessages((prev) => [...prev, { role: "assistant", content: "Noted. If this was a claim detail, try 'set field=value' (e.g., set email=john@x.com)." }]);
+        }
+        setInput("");
         setLoading(false);
         return;
       } else {
