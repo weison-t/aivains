@@ -2,249 +2,215 @@
 
 import { useMemo, useState } from "react";
 
-type Mode = "download" | "fill";
-type FormKind = "medical" | "accident";
-
-type MedicalForm = {
-  fullName: string;
-  policyNumber: string;
-  treatmentDate: string;
-  hospital: string;
-  claimAmount: string;
-  notes: string;
-};
-
-type AccidentForm = {
-  fullName: string;
-  policyNumber: string;
-  incidentDate: string;
-  location: string;
-  policeReportNo: string;
-  description: string;
-};
-
 export default function FormsSubmissionPage() {
-  const [mode, setMode] = useState<Mode>("download");
-  const [kind, setKind] = useState<FormKind>("medical");
-
-  const [medical, setMedical] = useState<MedicalForm>({
-    fullName: "",
-    policyNumber: "",
-    treatmentDate: "",
-    hospital: "",
-    claimAmount: "",
-    notes: "",
-  });
-
-  const [accident, setAccident] = useState<AccidentForm>({
-    fullName: "",
-    policyNumber: "",
-    incidentDate: "",
-    location: "",
-    policeReportNo: "",
-    description: "",
-  });
-
-  const handleMedicalChange = (field: keyof MedicalForm) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => setMedical((prev) => ({ ...prev, [field]: e.target.value }));
-
-  const handleAccidentChange = (field: keyof AccidentForm) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => setAccident((prev) => ({ ...prev, [field]: e.target.value }));
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const templateText = useMemo(() => {
-    if (kind === "medical") {
-      return [
-        "Medical Claim Form",
-        "-------------------",
-        "Full Name: ____________",
-        "Policy Number: ____________",
-        "Treatment Date (YYYY-MM-DD): ____________",
-        "Hospital/Clinic: ____________",
-        "Claim Amount (MYR): ____________",
-        "Notes: ____________",
-        "",
-        "Checklist:",
-        "[ ] Receipt / Invoice",
-        "[ ] Doctor's memo",
-        "[ ] Copy of IC/Passport",
-      ].join("\n");
-    }
     return [
-      "Accident Claim Form",
-      "--------------------",
+      "Travel Insurance Claim Form",
+      "--------------------------------",
       "Full Name: ____________",
-      "Policy Number: ____________",
-      "Incident Date (YYYY-MM-DD): ____________",
-      "Location: ____________",
-      "Police Report No.: ____________",
-      "Brief Description: ____________",
-      "",
-      "Checklist:",
-      "[ ] Police report",
-      "[ ] Photos of incident",
-      "[ ] Repair quotation / medical bills",
+      "Policy No.: ____________",
+      "Passport No.: ____________",
+      "Destination Country: ____________",
+      "Phone: ____________",
+      "Email: ____________",
+      "Departure Date (YYYY-MM-DD): ____________",
+      "Return Date (YYYY-MM-DD): ____________",
+      "Airline / Flight No.: ____________",
+      "Type of Claim: Medical / Cancellation / Delay / Baggage / Other: ______",
+      "Incident DateTime: ____________",
+      "Incident Location: ____________",
+      "Incident Description: ____________",
+      "Bank: ____________  Account No.: ____________  Account Name: ____________",
     ].join("\n");
-  }, [kind]);
+  }, []);
 
-  const handleDownload = () => {
-    const filename = kind === "medical" ? "Medical_Claim_Form.txt" : "Accident_Claim_Form.txt";
+  const handleDownloadTemplate = () => {
     const blob = new Blob([templateText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = filename;
+    a.download = "Travel_Claim_Form.txt";
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    alert("Submitted! (demo only)");
-  };
+    setSubmitting(true);
+    setSuccess(null);
+    setError(null);
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const types = fd.getAll("claimTypes");
+    fd.delete("claimTypes");
+    fd.set("claimTypes", types.join(", "));
+
+    try {
+      const res = await fetch("/api/travel-claim", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      setSuccess("Submitted! We'll be in touch via email.");
+      form.reset();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Submission failed.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <section className="px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl sm:text-3xl font-bold">Forms Submission</h1>
-        <p className="mt-2 opacity-90">Choose a form type and either download a template or fill it in directly.</p>
-
-        <div className="mt-4 flex flex-wrap gap-2 items-center" aria-label="Form type">
-          <span className="text-sm opacity-80">Form:</span>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Travel Claim Form</h1>
+            <p className="mt-1 opacity-90">填写或下载模板 • 填寫或下載 • กรอกหรือดาวน์โหลด • Isi atau muat turun</p>
+          </div>
           <button
             type="button"
-            className={"rounded-lg px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 " + (kind === "medical" ? "bg-white text-fuchsia-700" : "bg-white/10 text-white/90 hover:bg-white/15")}
-            aria-pressed={kind === "medical"}
-            onClick={() => setKind("medical")}
-          >
-            Medical claim
-          </button>
-          <button
-            type="button"
-            className={"rounded-lg px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 " + (kind === "accident" ? "bg-white text-fuchsia-700" : "bg-white/10 text-white/90 hover:bg-white/15")}
-            aria-pressed={kind === "accident"}
-            onClick={() => setKind("accident")}
-          >
-            Accident claim
-          </button>
-        </div>
-
-        <div className="mt-3 inline-flex rounded-xl bg-white/10 p-1 ring-1 ring-white/20" role="tablist" aria-label="Mode">
-          <button
-            type="button"
-            className={"rounded-lg px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 " + (mode === "download" ? "bg-white text-fuchsia-700" : "text-white/90 hover:text-white")}
-            role="tab"
-            aria-selected={mode === "download"}
-            aria-controls="download-panel"
-            onClick={() => setMode("download")}
+            onClick={handleDownloadTemplate}
+            className="inline-flex items-center justify-center rounded-lg bg-white text-fuchsia-700 font-semibold px-3 py-2 hover:bg-white/90 active:bg-white/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            aria-label="Download template"
           >
             Download template
           </button>
-          <button
-            type="button"
-            className={"ml-1 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 " + (mode === "fill" ? "bg-white text-fuchsia-700" : "text-white/90 hover:text-white")}
-            role="tab"
-            aria-selected={mode === "fill"}
-            aria-controls="fill-panel"
-            onClick={() => setMode("fill")}
-          >
-            Fill form
-          </button>
         </div>
 
-        {mode === "download" ? (
-          <div id="download-panel" role="tabpanel" className="mt-6">
-            <div className="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-              <p className="text-sm opacity-90">A simple template will be downloaded as a text file:</p>
-              <pre className="mt-3 whitespace-pre-wrap text-xs opacity-90">{templateText}</pre>
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={handleDownload}
-                  className="inline-flex items-center justify-center rounded-lg bg-white text-fuchsia-700 font-semibold px-4 py-2 hover:bg-white/90 active:bg-white/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                  aria-label="Download template"
-                >
-                  Download template
-                </button>
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-8" encType="multipart/form-data" aria-label="Travel claim form">
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold">Insured Person Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextInput name="fullName" label="Full Name" required />
+              <TextInput name="policyNo" label="Policy No." required />
+              <TextInput name="passportNo" label="Passport No." required />
+              <TextInput name="destinationCountry" label="Destination Country" required />
+              <TextInput name="phone" label="Phone" type="tel" required />
+              <TextInput name="email" label="Email" type="email" required />
             </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold">Travel Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextInput name="departureDate" label="Departure Date" type="date" required />
+              <TextInput name="returnDate" label="Return Date" type="date" required />
+              <TextInput name="airline" label="Airline / Flight No." />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Type of Claim</h2>
+            <fieldset className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <Checkbox name="claimTypes" value="Medical Expenses" label="Medical Expenses" />
+              <Checkbox name="claimTypes" value="Trip Cancellation" label="Trip Cancellation" />
+              <Checkbox name="claimTypes" value="Travel Delay" label="Travel Delay" />
+              <Checkbox name="claimTypes" value="Baggage Loss" label="Baggage Loss" />
+              <div className="flex items-center gap-2">
+                <input id="otherClaim" name="claimTypes" value="Other" type="checkbox" className="h-4 w-4 border-white/30 bg-white/10" />
+                <label htmlFor="otherClaim" className="text-sm">Other</label>
+                <input name="otherClaimDetail" placeholder="Specify" className="ml-2 flex-1 rounded-md bg-white/10 ring-1 ring-white/20 px-3 py-2 text-sm placeholder-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
+              </div>
+            </fieldset>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold">Incident Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextInput name="incidentDateTime" label="Date/Time of Incident" type="datetime-local" required />
+              <TextInput name="incidentLocation" label="Location" required />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <textarea name="incidentDescription" required className="mt-1 w-full rounded-md bg-white/10 ring-1 ring-white/20 px-3 py-2 text-sm min-h-[120px] placeholder-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold">Attachments</h2>
+            <ul className="list-disc pl-5 text-sm opacity-90">
+              <li>Passport Copy</li>
+              <li>Medical Receipts</li>
+              <li>Police Report (if any)</li>
+              <li>Other Supporting Documents</li>
+            </ul>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FileInput name="passportCopy" label="Passport Copy" required />
+              <FileInput name="medicalReceipts" label="Medical Receipts (PDF/Images, multiple)" multiple />
+              <FileInput name="policeReport" label="Police Report (optional)" />
+              <FileInput name="otherDocs" label="Other Supporting Documents (optional, multiple)" multiple />
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold">Bank Account for Payment</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <TextInput name="bankName" label="Bank" required />
+              <TextInput name="accountNo" label="Account No." required />
+              <TextInput name="accountName" label="Account Name" required />
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold">Declaration</h2>
+            <div className="flex items-start gap-3">
+              <input id="declaration" name="declaration" type="checkbox" required className="mt-1 h-4 w-4 border-white/30 bg-white/10" />
+              <label htmlFor="declaration" className="text-sm opacity-90">
+                I hereby declare that all information given above is true and correct.
+              </label>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FileInput name="signatureFile" label="Signature Image" />
+              <TextInput name="signatureDate" label="Date" type="date" required />
+            </div>
+          </section>
+
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-black bg-white disabled:opacity-50 ring-1 ring-black/10">
+              {submitting ? "Submitting..." : "Submit Claim"}
+            </button>
+            {success && <p className="text-sm text-green-300">{success}</p>}
+            {error && <p className="text-sm text-red-300">{error}</p>}
           </div>
-        ) : (
-          <div id="fill-panel" role="tabpanel" className="mt-6">
-            {kind === "medical" ? (
-              <form onSubmit={handleSubmit} className="space-y-4" aria-label="Medical claim form">
-                <div>
-                  <label htmlFor="m-fullName" className="block text-sm mb-1">Full Name</label>
-                  <input id="m-fullName" value={medical.fullName} onChange={handleMedicalChange("fullName")} required className="w-full rounded-lg bg-white/10 placeholder-white/60 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="Jane Doe" />
-                </div>
-                <div>
-                  <label htmlFor="m-policyNumber" className="block text-sm mb-1">Policy Number</label>
-                  <input id="m-policyNumber" value={medical.policyNumber} onChange={handleMedicalChange("policyNumber")} required className="w-full rounded-lg bg-white/10 placeholder-white/60 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="ABC-123456" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="m-treatmentDate" className="block text-sm mb-1">Treatment Date</label>
-                    <input id="m-treatmentDate" type="date" value={medical.treatmentDate} onChange={handleMedicalChange("treatmentDate")} required className="w-full rounded-lg bg-white/10 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
-                  </div>
-                  <div>
-                    <label htmlFor="m-amount" className="block text-sm mb-1">Claim Amount (MYR)</label>
-                    <input id="m-amount" type="number" inputMode="decimal" value={medical.claimAmount} onChange={handleMedicalChange("claimAmount")} className="w-full rounded-lg bg-white/10 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="150.00" />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="m-hospital" className="block text-sm mb-1">Hospital/Clinic</label>
-                  <input id="m-hospital" value={medical.hospital} onChange={handleMedicalChange("hospital")} className="w-full rounded-lg bg-white/10 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="ABC Specialist Centre" />
-                </div>
-                <div>
-                  <label htmlFor="m-notes" className="block text-sm mb-1">Notes</label>
-                  <textarea id="m-notes" rows={4} value={medical.notes} onChange={handleMedicalChange("notes")} className="w-full rounded-lg bg-white/10 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="Additional information..." />
-                </div>
-                <div className="pt-2">
-                  <button type="submit" className="inline-flex items-center justify-center rounded-lg bg-white text-fuchsia-700 font-semibold px-4 py-2 hover:bg-white/90 active:bg-white/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label="Submit medical claim form">
-                    Submit
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4" aria-label="Accident claim form">
-                <div>
-                  <label htmlFor="a-fullName" className="block text-sm mb-1">Full Name</label>
-                  <input id="a-fullName" value={accident.fullName} onChange={handleAccidentChange("fullName")} required className="w-full rounded-lg bg-white/10 placeholder-white/60 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="Jane Doe" />
-                </div>
-                <div>
-                  <label htmlFor="a-policyNumber" className="block text-sm mb-1">Policy Number</label>
-                  <input id="a-policyNumber" value={accident.policyNumber} onChange={handleAccidentChange("policyNumber")} required className="w-full rounded-lg bg-white/10 placeholder-white/60 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="ABC-123456" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="a-incidentDate" className="block text-sm mb-1">Incident Date</label>
-                    <input id="a-incidentDate" type="date" value={accident.incidentDate} onChange={handleAccidentChange("incidentDate")} required className="w-full rounded-lg bg-white/10 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
-                  </div>
-                  <div>
-                    <label htmlFor="a-report" className="block text-sm mb-1">Police Report No.</label>
-                    <input id="a-report" value={accident.policeReportNo} onChange={handleAccidentChange("policeReportNo")} className="w-full rounded-lg bg-white/10 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="RPT-2025-0001" />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="a-location" className="block text-sm mb-1">Location</label>
-                  <input id="a-location" value={accident.location} onChange={handleAccidentChange("location")} className="w-full rounded-lg bg-white/10 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="Jalan Tun Razak, KL" />
-                </div>
-                <div>
-                  <label htmlFor="a-desc" className="block text-sm mb-1">Brief Description</label>
-                  <textarea id="a-desc" rows={4} value={accident.description} onChange={handleAccidentChange("description")} className="w-full rounded-lg bg-white/10 focus:bg-white/15 px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-white/70" placeholder="What happened?" />
-                </div>
-                <div className="pt-2">
-                  <button type="submit" className="inline-flex items-center justify-center rounded-lg bg-white text-fuchsia-700 font-semibold px-4 py-2 hover:bg-white/90 active:bg-white/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label="Submit accident claim form">
-                    Submit
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
+        </form>
       </div>
     </section>
   );
+}
+
+function TextInput({ label, name, type = "text", required = false }: { label: string; name: string; type?: string; required?: boolean; }) {
+  return (
+    <label className="block">
+      <Label>{label}{required && <span className="text-red-300"> *</span>}</Label>
+      <input name={name} type={type} required={required} className="mt-1 w-full rounded-md bg-white/10 ring-1 ring-white/20 px-3 py-2 text-sm placeholder-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
+    </label>
+  );
+}
+
+function FileInput({ label, name, multiple = false, required = false }: { label: string; name: string; multiple?: boolean; required?: boolean; }) {
+  return (
+    <label className="block">
+      <Label>{label}{required && <span className="text-red-300"> *</span>}</Label>
+      <input name={name} type="file" multiple={multiple} required={required} className="mt-1 w-full text-sm" />
+    </label>
+  );
+}
+
+function Checkbox({ label, name, value }: { label: string; name: string; value: string; }) {
+  const id = `${name}-${value.replace(/\s+/g, "-").toLowerCase()}`;
+  return (
+    <div className="flex items-center gap-2">
+      <input id={id} name={name} value={value} type="checkbox" className="h-4 w-4 border-white/30 bg-white/10" />
+      <label htmlFor={id} className="text-sm">{label}</label>
+    </div>
+  );
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return <span className="block text-sm font-medium">{children}</span>;
 }
 
