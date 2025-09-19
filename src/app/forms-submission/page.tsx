@@ -81,6 +81,7 @@ export default function FormsSubmissionPage() {
           </button>
         </div>
 
+        <div className="rounded-2xl bg-white text-black ring-1 ring-black/10 p-4 sm:p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-8" encType="multipart/form-data" aria-label="Travel claim form">
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">Insured Person Information</h2>
@@ -132,7 +133,7 @@ export default function FormsSubmissionPage() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold">Attachments</h2>
-            <ul className="list-disc pl-5 text-sm opacity-90">
+            <ul className="list-disc pl-5 text-sm text-black/70">
               <li>Passport Copy</li>
               <li>Medical Receipts</li>
               <li>Police Report (if any)</li>
@@ -170,13 +171,14 @@ export default function FormsSubmissionPage() {
           </section>
 
           <div className="flex items-center gap-3">
-            <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-black bg-white disabled:opacity-50 ring-1 ring-black/10">
+            <button type="submit" disabled={submitting} className="rounded-lg px-4 py-2 text-white bg-black disabled:opacity-50">
               {submitting ? "Submitting..." : "Submit Claim"}
             </button>
-            {success && <p className="text-sm text-green-300">{success}</p>}
-            {error && <p className="text-sm text-red-300">{error}</p>}
+            {success && <p className="text-sm text-green-700">{success}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </div>
         </form>
+        </div>
       </div>
     </section>
   );
@@ -185,8 +187,8 @@ export default function FormsSubmissionPage() {
 function TextInput({ label, name, type = "text", required = false }: { label: string; name: string; type?: string; required?: boolean; }) {
   return (
     <label className="block">
-      <Label>{label}{required && <span className="text-red-300"> *</span>}</Label>
-      <input name={name} type={type} required={required} className="mt-1 w-full rounded-md bg-white/10 ring-1 ring-white/20 px-3 py-2 text-sm placeholder-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
+      <Label>{label}{required && <span className="text-red-600"> *</span>}</Label>
+      <input name={name} type={type} required={required} className="mt-1 w-full rounded-md bg-white ring-1 ring-black/10 px-3 py-2 text-sm text-black placeholder-black/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20" />
     </label>
   );
 }
@@ -194,8 +196,8 @@ function TextInput({ label, name, type = "text", required = false }: { label: st
 function FileInput({ label, name, multiple = false, required = false }: { label: string; name: string; multiple?: boolean; required?: boolean; }) {
   return (
     <label className="block">
-      <Label>{label}{required && <span className="text-red-300"> *</span>}</Label>
-      <input name={name} type="file" multiple={multiple} required={required} className="mt-1 w-full text-sm" />
+      <Label>{label}{required && <span className="text-red-600"> *</span>}</Label>
+      <input name={name} type="file" multiple={multiple} required={required} className="mt-1 w-full text-sm text-black file:mr-2 file:rounded-md file:border file:border-black/10 file:bg-white file:px-3 file:py-1.5 file:text-sm file:text-black" />
     </label>
   );
 }
@@ -204,13 +206,13 @@ function Checkbox({ label, name, value }: { label: string; name: string; value: 
   const id = `${name}-${value.replace(/\s+/g, "-").toLowerCase()}`;
   return (
     <div className="flex items-center gap-2">
-      <input id={id} name={name} value={value} type="checkbox" className="h-4 w-4 border-white/30 bg-white/10" />
-      <label htmlFor={id} className="text-sm">{label}</label>
+      <input id={id} name={name} value={value} type="checkbox" className="h-4 w-4 accent-black border-black/30" />
+      <label htmlFor={id} className="text-sm text-black">{label}</label>
     </div>
   );
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <span className="block text-sm font-medium">{children}</span>;
+  return <span className="block text-sm font-medium text-black">{children}</span>;
 }
 
