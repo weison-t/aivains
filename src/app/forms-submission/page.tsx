@@ -6,6 +6,7 @@ export default function FormsSubmissionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<boolean>(false);
 
   const templateText = useMemo(() => {
     return [
@@ -71,6 +72,7 @@ export default function FormsSubmissionPage() {
             <h1 className="text-2xl sm:text-3xl font-bold">Travel Claim Form</h1>
             <p className="mt-1 opacity-90">填写或下载模板 • 填寫或下載 • กรอกหรือดาวน์โหลด • Isi atau muat turun</p>
           </div>
+          {selected && (
           <button
             type="button"
             onClick={handleDownloadTemplate}
@@ -79,8 +81,32 @@ export default function FormsSubmissionPage() {
           >
             Download template
           </button>
+          )}
         </div>
 
+        {!selected ? (
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              type="button"
+              onClick={() => setSelected(true)}
+              className="text-left rounded-2xl bg-white ring-1 ring-black/10 p-4 sm:p-5 shadow-sm hover:ring-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30"
+              aria-label="Open Travel Claim form"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow">
+                    <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5"><path d="M2 12h2l3 7h10l3-7h2" /><path d="M7 12l5-9 5 9" /></svg>
+                  </span>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-semibold text-black">Travel Claim</h2>
+                    <p className="text-sm text-black/70">Submit a travel insurance claim or download a blank template.</p>
+                  </div>
+                </div>
+                <span className="text-black/50" aria-hidden>→</span>
+              </div>
+            </button>
+          </div>
+        ) : (
         <div className="rounded-2xl bg-white text-black ring-1 ring-black/10 p-4 sm:p-6 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-8" encType="multipart/form-data" aria-label="Travel claim form">
           <section className="space-y-4">
@@ -179,6 +205,7 @@ export default function FormsSubmissionPage() {
           </div>
         </form>
         </div>
+        )}
       </div>
     </section>
   );
