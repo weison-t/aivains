@@ -39,18 +39,12 @@ export default function SubmittedClaimsPage() {
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string | undefined;
-    if (!url || !anon) { setError("Supabase not configured."); setLoading(false); return; }
-    const supa = createClient(url, anon);
     (async () => {
       try {
-        const { data, error: err } = await supa
-          .from("tarvelclaimform")
-          .select("id,created_at,full_name,policy_no,passport_no,email,phone,claim_types,other_claim_detail,destination_country,departure_date,return_date,airline,incident_datetime,incident_location,incident_description,bank_name,account_no,account_name,declaration,signature_date,passport_copy_paths,medical_receipts_paths,police_report_path,other_docs_paths")
-          .order("created_at", { ascending: false });
-        if (err) throw err;
-        setRows(Array.isArray(data) ? (data as unknown as ClaimRow[]) : []);
+        const res = await fetch("/api/travel-claim/list", { cache: "no-store" });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || "Failed to load");
+        setRows(Array.isArray(json?.rows) ? (json.rows as ClaimRow[]) : []);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to fetch");
       } finally {
