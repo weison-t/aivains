@@ -153,7 +153,12 @@ export default function FormsSubmissionPage() {
             </div>
             <div>
               <Label>Description</Label>
-              <textarea name="incidentDescription" required className="mt-1 w-full rounded-md bg-white/10 ring-1 ring-white/20 px-3 py-2 text-sm min-h-[120px] placeholder-white/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" />
+              <textarea
+                name="incidentDescription"
+                required
+                className="mt-1 w-full rounded-lg bg-white ring-1 ring-black/10 px-3 py-2 text-sm text-black placeholder-black/50 min-h-[160px] focus:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+                placeholder="Briefly describe what happened..."
+              />
             </div>
           </section>
 
