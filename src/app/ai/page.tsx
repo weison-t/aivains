@@ -23,25 +23,7 @@ export default function AIPage() {
   const listRef = useRef<HTMLDivElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
-  const downscaleDataUrl = async (src: string, maxDim = 1280, quality = 0.6): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const { width: w, height: h } = img;
-        const scale = Math.min(1, maxDim / Math.max(w, h));
-        const nw = Math.max(1, Math.round(w * scale));
-        const nh = Math.max(1, Math.round(h * scale));
-        const c = document.createElement("canvas");
-        c.width = nw; c.height = nh;
-        const cx = c.getContext("2d");
-        if (!cx) return resolve(src);
-        cx.drawImage(img, 0, 0, nw, nh);
-        resolve(c.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () => resolve(src);
-      img.src = src;
-    });
-  };
+  // removed: downscaleDataUrl (no longer needed without client pdf.js OCR)
 
   const fetchWithTimeout = async (input: RequestInfo | URL, init?: RequestInit & { timeoutMs?: number }) => {
     const timeoutMs = init?.timeoutMs ?? 60000;

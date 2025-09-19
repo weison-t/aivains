@@ -71,27 +71,6 @@ export default function PoliciesPage() {
   const [selectedFile, setSelectedFile] = useState<StorageFile | null>(null);
   const [translated, setTranslated] = useState<string>("");
   const [translating, setTranslating] = useState<boolean>(false);
-  const downscaleDataUrl = async (src: string, maxDim = 1280, quality = 0.6): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const w = img.width;
-        const h = img.height;
-        const scale = Math.min(1, maxDim / Math.max(w, h));
-        const nw = Math.max(1, Math.round(w * scale));
-        const nh = Math.max(1, Math.round(h * scale));
-        const c = document.createElement("canvas");
-        c.width = nw;
-        c.height = nh;
-        const cx = c.getContext("2d");
-        if (!cx) return resolve(src);
-        cx.drawImage(img, 0, 0, nw, nh);
-        resolve(c.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () => resolve(src);
-      img.src = src;
-    });
-  };
 
   // Add policy feature removed per request
 

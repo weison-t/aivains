@@ -65,9 +65,16 @@ export async function POST(req: Request): Promise<Response> {
     await (openai as unknown as { beta: { vectorStores: { fileBatches: { uploadAndPoll: (id: string, opts: { files: File[] }) => Promise<unknown> } } } }).beta.vectorStores.fileBatches.uploadAndPoll(vectorStore.id, { files: [vf] });
 
     // Use file_search tool with the vector store
-    const response = await openai.responses.create({
+    const response = await (openai as unknown as {
+      responses: { create: (opts: {
+        model: string;
+        tools: Array<{ type: "file_search"; file_search?: { vector_store_ids: string[] } }>;
+        tool_resources: { file_search: { vector_store_ids: string[] } };
+        input: string;
+      }) => Promise<unknown> };
+    }).responses.create({
       model: "gpt-4.1-mini",
-      tools: [{ type: "file_search" }],
+      tools: [{ type: "file_search", file_search: { vector_store_ids: [vectorStore.id] } }],
       tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
       input: `Translate the attached document into ${targetLanguage}. Preserve structure and headings as readable plain text. Return only the translation.`,
     });

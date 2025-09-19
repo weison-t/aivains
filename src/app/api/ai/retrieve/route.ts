@@ -47,9 +47,16 @@ export async function POST(req: Request): Promise<Response> {
       instruction = `Answer the user's question using only the attached document. If insufficient, state what's missing.`;
     }
 
-    const response = await openai.responses.create({
+    const response = await (openai as unknown as {
+      responses: { create: (opts: {
+        model: string;
+        tools: Array<{ type: "file_search"; file_search?: { vector_store_ids: string[] } }>;
+        tool_resources: { file_search: { vector_store_ids: string[] } };
+        input: string;
+      }) => Promise<unknown> };
+    }).responses.create({
       model: "gpt-4.1-mini",
-      tools: [{ type: "file_search" }],
+      tools: [{ type: "file_search", file_search: { vector_store_ids: [vectorStore.id] } }],
       tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
       input: question ? `${instruction}\n\nQuestion: ${question}` : instruction,
     });
