@@ -58,6 +58,28 @@ export default function Home() {
             <p className="mt-2 text-xs sm:text-sm opacity-90">Upload documents securely, with clear guidance on what’s required for approval.</p>
           </a>
 
+          <a
+            href="/submitted-claims"
+            className="group flex flex-col rounded-2xl border border-white/30 bg-white/10 hover:bg-white/15 active:bg-white/20 shadow-sm transition-colors p-3 sm:p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            role="gridcell"
+            tabIndex={0}
+            aria-label="Submitted claims module"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-600 shadow-md">
+                  <svg aria-hidden xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 sm:h-5 sm:w-5 text-white">
+                    <path d="M4 6a2 2 0 0 1 2-2h8l4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z"/>
+                    <path d="M14 4v4h4" className="opacity-70" />
+                  </svg>
+                </span>
+                <h2 className="text-base sm:text-xl font-semibold">Submitted Claims</h2>
+              </div>
+              <span className="opacity-80" aria-hidden>→</span>
+            </div>
+            <p className="mt-2 text-xs sm:text-sm opacity-90">View your submitted claim forms and preview details and attachments.</p>
+          </a>
+
           
 
           <a
