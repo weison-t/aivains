@@ -515,13 +515,21 @@ export default function AIPage() {
         }
         const changedLocal = mergeDraft(local);
         let changedAI: string[] = [];
+        let aiObj: Partial<TravelClaimDraft> = {};
         if (changedLocal.length === 0) {
-          const ai = await extractFromMessageWithAI(trimmed);
-          changedAI = mergeDraft(ai);
+          aiObj = await extractFromMessageWithAI(trimmed);
+          changedAI = mergeDraft(aiObj);
         }
         if (changedLocal.length || changedAI.length) {
           const keys = [...changedLocal, ...changedAI];
-          setMessages((prev) => [...prev, { role: "assistant", content: `Captured: ${keys.join(", ")}. You can continue or press Submit below.` }]);
+          const pairs: string[] = [];
+          const fromLocal = local as Record<string, unknown>;
+          const fromAI = aiObj as Record<string, unknown>;
+          for (const k of keys) {
+            const v = (fromLocal[k] as string) || (fromAI[k] as string) || "";
+            if (v) pairs.push(`${k}=${v}`);
+          }
+          setMessages((prev) => [...prev, { role: "assistant", content: `Captured: ${pairs.join(", ")}. You can continue or press Submit below.` }]);
         } else {
           // If user asked a question, provide guidance; otherwise keep UI clean
           if (isQuestion(trimmed)) {
